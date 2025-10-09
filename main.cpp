@@ -1,6 +1,8 @@
 // Includes
 
 #include "raylib.h"
+#include <cstdlib>
+#include <ctime>
 #include <vector>
 
 // Constants
@@ -24,6 +26,11 @@ Tile tiles[(unsigned)tile_size.y][(unsigned)tile_size.x];
 
 std::vector<Piece> pieces {
     {{{1, 1}, {1, 1}}}, {{{1, 1, 1}, {0, 0, 1}}}
+};
+
+std::vector<Color> colors {
+    RED, ORANGE, YELLOW, GREEN, GOLD, PINK, MAROON, LIME, DARKGREEN,
+    SKYBLUE, BLUE, DARKBLUE, PURPLE, VIOLET, DARKPURPLE
 };
 
 // Draw functions
@@ -80,9 +87,18 @@ bool key_pressed(int key) {
     return IsKeyPressed(key) or IsKeyPressedRepeat(key);
 }
 
+Piece& get_random_piece() {
+    return pieces[rand() % pieces.size()];
+}
+
+Color& get_random_color() {
+    return colors[rand() % colors.size()];
+}
+
 // Main function
 
 int main() {
+    srand(time(nullptr));
     InitWindow(screen.x, screen.y, "Tetris Clone");
     SetTargetFPS(60);
 
@@ -98,17 +114,31 @@ int main() {
         }
     }
 
-    Piece piece = pieces[1];
-    int x = 5;
+    Piece piece = get_random_piece();
+    Color color = get_random_color();
+    int x = 4;
     int y = 1;
-    draw(piece, x, y, GREEN);
+    bool next_piece = false;
+
+    float down_timer = 0.f;
+    float down_after = 1.f;
 
     while (!WindowShouldClose()) {
         // Controls
 
+        if (next_piece) {
+            piece = get_random_piece();
+            color = get_random_color();
+            x = 4;
+            y = 1;
+            next_piece = false;
+            down_timer = 0.f;
+        }
+
         clear(piece, x, y);
         if ((key_pressed(KEY_DOWN) or key_pressed(KEY_S)) and can_move(piece, x, y, DOWN)) {
             y++;
+            down_timer = 0.f;
         }
 
         if ((key_pressed(KEY_RIGHT) or key_pressed(KEY_D)) and can_move(piece, x, y, RIGHT)) {
@@ -119,12 +149,23 @@ int main() {
             x--;
         }
 
-        if (key_pressed(KEY_UP) or key_pressed(KEY_W)) {
+        if (key_pressed(KEY_UP) or key_pressed(KEY_SPACE)) {
             while (can_move(piece, x, y, DOWN)) {
-                ++y;
+                y++;
             }
         }
-        draw(piece, x, y, GREEN);
+
+        down_timer += GetFrameTime();
+        if (down_timer >= down_after) {
+            down_timer -= down_after;
+
+            if (can_move(piece, x, y, DOWN)) {
+                y++;
+            } else {
+                next_piece = true;
+            }
+        }
+        draw(piece, x, y, color);
 
         // Render
         
