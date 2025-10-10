@@ -1,14 +1,15 @@
 // Includes
 
-// Scoring system:
-// 1 - 100, 2 - 300, 3 - 500, 4 - 800
-
 #include "raylib.h"
 #include <algorithm>
 #include <cstdlib>
 #include <ctime>
+#include <fstream>
 #include <random>
 #include <vector>
+
+using namespace std::string_literals;
+using namespace std::string_view_literals;
 
 // Constants
 
@@ -50,6 +51,27 @@ std::vector<Color> colors {
     SKYBLUE, BLUE, DARKBLUE, PURPLE, VIOLET, DARKPURPLE
 };
 
+// Save Load functions
+
+void save_hi_score(int hi_score) {
+    std::ofstream file ("save.data");
+    file << std::to_string(hi_score) << '\n';
+    file.close();
+}
+
+int load_hi_score() {
+    std::fstream file ("save.data");
+    std::string line;
+    file >> line;
+    file.close();
+
+    try {
+        return std::stoi(line);
+    } catch (...) {
+        return 0;
+    }
+}
+
 // Draw functions
 
 void clear(Piece& piece, int x, int y) {
@@ -79,10 +101,12 @@ void draw_next(Piece& piece, const Color& color) {
             next_tiles[y][x].on = false;
         }
     }
-    
-    for (int y = 1; y < piece.tiles.size() + 1; ++y) {
-        for (int x = 1; x < piece.tiles[0].size() + 1; ++x) {
-            if (piece.tiles[y - 1][x - 1]) {
+    int oy = (piece.tiles.size() == 4 ? 1 : 2);
+    int ox = (piece.tiles[0].size() == 2 ? 2 : 1);
+
+    for (int y = oy; y < piece.tiles.size() + oy; ++y) {
+        for (int x = ox; x < piece.tiles[0].size() + ox; ++x) {
+            if (piece.tiles[y - oy][x - ox]) {
                 next_tiles[y][x].on = true;
                 next_tiles[y][x].color = color;
             }
@@ -136,7 +160,7 @@ bool rotate(Piece& piece, int x, int y) {
 
 // Clear
 
-void clear_cleared_rows() {
+void clear_cleared_rows(int& score) {
     std::vector<int> cleared_rows;
     
     for (int y = 1; y < tile_size.y - 1; ++y) {
@@ -158,6 +182,16 @@ void clear_cleared_rows() {
         return;
     }
 
+    if (cleared_rows.size() == 1) {
+        score += 100;
+    } else if (cleared_rows.size() == 2) {
+        score += 300;
+    } else if (cleared_rows.size() == 3) {
+        score += 500;
+    } else if (cleared_rows.size() == 4) {
+        score += 800;
+    }
+
     for (const auto& yy : cleared_rows) {
         for (int y = yy; y >= 2; --y) {
             for (int x = 1; x < tile_size.x - 1; ++x) {
@@ -168,9 +202,6 @@ void clear_cleared_rows() {
 }
 
 // Other helper functions
-
-void fill_bag() {
-}
 
 bool key_pressed(int key) {
     return IsKeyPressed(key) or IsKeyPressedRepeat(key);
@@ -243,11 +274,14 @@ int main() {
     float down_timer = 0.f;
     float down_after = 1.f;
 
+    int score = 0;
+    int best_score = load_hi_score();
+
     while (!WindowShouldClose()) {
         // Controls
 
         if (make_next_piece) {
-            clear_cleared_rows();
+            clear_cleared_rows(score);
             piece = next_piece;
             color = next_color;
             next_piece = get_random_piece();
@@ -308,6 +342,11 @@ int main() {
         }
         draw(piece, x, y, color);
 
+        if (IsKeyPressed(KEY_ESCAPE)) {
+            CloseWindow();
+            break;
+        }
+
         // Render
         
         BeginDrawing();
@@ -325,12 +364,19 @@ int main() {
             for (int y = 0; y < 6; ++y) {
                 for (int x = 0; x < 6; ++x) {
                     if (next_tiles[y][x].on) {
-                        Vector2 pos {(x + 13) * tile_texture.width * tile_scale, (y + 1) * tile_texture.height * tile_scale};
+                        Vector2 pos {(x + 13) * tile_texture.width * tile_scale, (y + 2) * tile_texture.height * tile_scale};
                         DrawTextureEx(tile_texture, pos, 0.f, tile_scale, next_tiles[y][x].color);
                     }
                 }
             }
+            DrawText("NEXT:", 13 * tile_texture.width * tile_scale, tile_texture.height * tile_scale, 20, WHITE);
+            DrawText(("SCORE: "s + std::to_string(score)).c_str(), 13 * tile_texture.width * tile_scale, 9 * tile_texture.height * tile_scale, 20, WHITE);
+            DrawText(("HI-SCORE: "s + std::to_string(best_score)).c_str(), 13 * tile_texture.width * tile_scale, 11 * tile_texture.height * tile_scale, 20, WHITE);
         EndDrawing();
+    }
+
+    if (score >= best_score) {
+        save_hi_score(score);
     }
     CloseWindow();
     return 0;
