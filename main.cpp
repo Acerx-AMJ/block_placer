@@ -4,9 +4,10 @@
 // 1 - 100, 2 - 300, 3 - 500, 4 - 800
 
 #include "raylib.h"
+#include <algorithm>
 #include <cstdlib>
 #include <ctime>
-#include <iostream>
+#include <random>
 #include <vector>
 
 // Constants
@@ -26,6 +27,8 @@ struct Tile {
     Color color;
 };
 
+// Global variables
+
 std::vector<std::vector<Tile>> tiles;
 std::vector<std::vector<Tile>> next_tiles;
 
@@ -39,6 +42,8 @@ std::vector<Piece> pieces {
     {{{0, 0, 0}, {1, 1, 1}, {0, 0, 0}}},
     {{{0, 0, 0, 0}, {1, 1, 1, 1}, {0, 0, 0, 0}, {0, 0, 0, 0}}},
 };
+
+std::vector<Piece> bag;
 
 std::vector<Color> colors {
     RED, ORANGE, YELLOW, GREEN, GOLD, PINK, MAROON, LIME, DARKGREEN,
@@ -75,11 +80,9 @@ void draw_next(Piece& piece, const Color& color) {
         }
     }
     
-    std::cout << "NEW!\n";
     for (int y = 1; y < piece.tiles.size() + 1; ++y) {
         for (int x = 1; x < piece.tiles[0].size() + 1; ++x) {
             if (piece.tiles[y - 1][x - 1]) {
-                std::cout << x << ' ' << y << '\n';
                 next_tiles[y][x].on = true;
                 next_tiles[y][x].color = color;
             }
@@ -166,12 +169,26 @@ void clear_cleared_rows() {
 
 // Other helper functions
 
+void fill_bag() {
+}
+
 bool key_pressed(int key) {
     return IsKeyPressed(key) or IsKeyPressedRepeat(key);
 }
 
-Piece& get_random_piece() {
-    return pieces[rand() % pieces.size()];
+Piece get_random_piece() {
+    if (bag.empty()) {
+        std::random_device rd;
+        std::mt19937 device(rd());
+        std::shuffle(pieces.begin(), pieces.end(), device);
+
+        for (const auto& piece : pieces) {
+            bag.push_back(piece);
+        }
+    }
+    auto piece = bag.back();
+    bag.pop_back();
+    return piece;
 }
 
 Color& get_random_color() {
