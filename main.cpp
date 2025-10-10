@@ -1,13 +1,17 @@
 // Includes
 
+// Scoring system:
+// 1 - 100, 2 - 300, 3 - 500, 4 - 800
+
 #include "raylib.h"
 #include <cstdlib>
 #include <ctime>
+#include <iostream>
 #include <vector>
 
 // Constants
 
-constexpr Vector2 screen {600, 700}; 
+constexpr Vector2 screen {636, 700}; 
 constexpr Vector2 tile_size {12, 22};
 constexpr float tile_scale = .5f;
 
@@ -23,6 +27,7 @@ struct Tile {
 };
 
 std::vector<std::vector<Tile>> tiles;
+std::vector<std::vector<Tile>> next_tiles;
 
 std::vector<Piece> pieces {
     {{{1, 1}, {1, 1}}},
@@ -63,6 +68,25 @@ void draw(Piece& piece, int x, int y, const Color& color) {
     }
 }
 
+void draw_next(Piece& piece, const Color& color) {
+    for (int y = 1; y < 5; ++y) {
+        for (int x = 1; x < 5; ++x) {
+            next_tiles[y][x].on = false;
+        }
+    }
+    
+    std::cout << "NEW!\n";
+    for (int y = 1; y < piece.tiles.size() + 1; ++y) {
+        for (int x = 1; x < piece.tiles[0].size() + 1; ++x) {
+            if (piece.tiles[y - 1][x - 1]) {
+                std::cout << x << ' ' << y << '\n';
+                next_tiles[y][x].on = true;
+                next_tiles[y][x].color = color;
+            }
+        }
+    }
+}
+
 // Collision functions
 
 constexpr int LEFT = 0;
@@ -72,7 +96,7 @@ constexpr int CURRENT = 3;
 
 bool can_move(Piece& piece, int x, int y, int direction) {
     for (int yy = y; yy < tile_size.y and yy < y + (int)piece.tiles.size(); ++yy) {
-        for (int xx = x; xx < tile_size.x and xx < x + (int)piece.tiles.size(); ++xx) {
+        for (int xx = x; xx < tile_size.x and xx < x + (int)piece.tiles[0].size(); ++xx) {
             if (not piece.tiles[yy - y][xx - x]) {
                 continue;
             }
@@ -176,11 +200,28 @@ int main() {
         tiles.push_back(row);
     }
 
+    for (int y = 0; y < 6; ++y) {
+        std::vector<Tile> row;
+        for (int x = 0; x < 6; ++x) {
+            if (y == 0 or y == 5 or x == 0 or x == 5) {
+                Tile tile {true, true, GRAY};
+                row.push_back(tile);
+            } else {
+                row.push_back({});
+            }
+        }
+        next_tiles.push_back(row);
+    }
+
     Piece piece = get_random_piece();
     Color color = get_random_color();
+    Piece next_piece = get_random_piece();
+    Color next_color = get_random_color();
+    draw_next(next_piece, next_color);
+
     int x = 4;
     int y = 1;
-    bool next_piece = false;
+    bool make_next_piece = false;
 
     float down_timer = 0.f;
     float down_after = 1.f;
@@ -188,13 +229,17 @@ int main() {
     while (!WindowShouldClose()) {
         // Controls
 
-        if (next_piece) {
+        if (make_next_piece) {
             clear_cleared_rows();
-            piece = get_random_piece();
-            color = get_random_color();
+            piece = next_piece;
+            color = next_color;
+            next_piece = get_random_piece();
+            next_color = get_random_color();
+            draw_next(next_piece, next_color);
+
             x = 4;
             y = 1;
-            next_piece = false;
+            make_next_piece = false;
             down_timer = 0.f;
         }
 
@@ -227,7 +272,7 @@ int main() {
             x--;
         }
 
-        if (key_pressed(KEY_UP) or key_pressed(KEY_SPACE)) {
+        if (key_pressed(KEY_SPACE)) {
             while (can_move(piece, x, y, DOWN)) {
                 y++;
             }
@@ -241,7 +286,7 @@ int main() {
             if (can_move(piece, x, y, DOWN)) {
                 y++;
             } else {
-                next_piece = true;
+                make_next_piece = true;
             }
         }
         draw(piece, x, y, color);
@@ -256,6 +301,15 @@ int main() {
                     if (tiles[y][x].on) {
                         Vector2 pos {x * tile_texture.width * tile_scale, y * tile_texture.height * tile_scale};
                         DrawTextureEx(tile_texture, pos, 0.f, tile_scale, tiles[y][x].color);
+                    }
+                }
+            }
+
+            for (int y = 0; y < 6; ++y) {
+                for (int x = 0; x < 6; ++x) {
+                    if (next_tiles[y][x].on) {
+                        Vector2 pos {(x + 13) * tile_texture.width * tile_scale, (y + 1) * tile_texture.height * tile_scale};
+                        DrawTextureEx(tile_texture, pos, 0.f, tile_scale, next_tiles[y][x].color);
                     }
                 }
             }
