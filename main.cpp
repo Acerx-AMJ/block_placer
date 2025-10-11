@@ -40,7 +40,6 @@ std::vector<Piece> pieces {
     {{{0, 1, 1}, {1, 1, 0}, {0, 0, 0}}},
     {{{1, 1, 0}, {0, 1, 1}, {0, 0, 0}}},
     {{{0, 1, 0}, {1, 1, 1}, {0, 0, 0}}},
-    {{{0, 0, 0}, {1, 1, 1}, {0, 0, 0}}},
     {{{0, 0, 0, 0}, {1, 1, 1, 1}, {0, 0, 0, 0}, {0, 0, 0, 0}}},
 };
 
@@ -193,9 +192,13 @@ void clear_cleared_rows(int& score) {
     }
 
     for (const auto& yy : cleared_rows) {
-        for (int y = yy; y >= 2; --y) {
+        for (int y = yy; y >= 1; --y) {
             for (int x = 1; x < tile_size.x - 1; ++x) {
-                tiles[y][x] = tiles[y - 1][x];
+                if (y == 1) {
+                    tiles[y][x].on = false;
+                } else {
+                    tiles[y][x] = tiles[y - 1][x];
+                }
             }
         }
     }
@@ -295,7 +298,7 @@ int main() {
         }
 
         clear(piece, x, y);
-        if (key_pressed(KEY_UP) or key_pressed(KEY_W)) {
+        if (IsKeyPressed(KEY_UP) or IsKeyPressed(KEY_W)) {
             bool rotated = rotate(piece, x, y);
             if (not rotated) {
                 rotated = rotate(piece, x + 1, y);
