@@ -369,6 +369,27 @@ int main() {
                     }
                 }
             }
+
+            Piece copy = piece;
+            int copy_y = y;
+
+            clear(piece, x, y);
+            while (can_move(copy, x, copy_y, DOWN)) {
+                copy_y++;
+            }
+            draw(piece, x, y, color);
+
+            if (copy_y != y) {
+                for (int yy = copy_y; yy < copy_y + (int)copy.tiles.size() and yy < tile_size.y; ++yy) {
+                    for (int xx = x; xx < x + (int)copy.tiles.size() and xx < tile_size.x; ++xx) {
+                        if (copy.tiles[yy - copy_y][xx - x]) {
+                            Vector2 pos {xx * tile_texture.width * tile_scale, yy * tile_texture.height * tile_scale};
+                            DrawRectangleLines(pos.x, pos.y, tile_texture.width * tile_scale, tile_texture.height * tile_scale, color);
+                        }
+                    }
+                }
+            }
+
             DrawText("NEXT:", 13 * tile_texture.width * tile_scale, tile_texture.height * tile_scale, 20, WHITE);
             DrawText(("SCORE: "s + std::to_string(score)).c_str(), 13 * tile_texture.width * tile_scale, 9 * tile_texture.height * tile_scale, 20, WHITE);
             DrawText(("HI-SCORE: "s + std::to_string(best_score)).c_str(), 13 * tile_texture.width * tile_scale, 11 * tile_texture.height * tile_scale, 20, WHITE);
