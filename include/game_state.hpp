@@ -39,7 +39,12 @@ class GameState : public State {
    int preview_y = 0;
    int score = 0;
    int hi_score = 0;
+   int total_clears = 0;
+   int combo_count = -1;
+   int level = 0;
    bool make_next_tetromino = false;
+   bool soft_drop = false;
+   bool hard_drop = false;
    float down_timer = 0.f;
    float down_after = 1.f;
    
@@ -76,6 +81,8 @@ public:
 
    // Utility functions
 
+   void add_drop_score(bool hard);
+   void add_score(int plus);
    bool key_pressed(int key);
    Tetromino get_random_tetromino();
    Color get_random_color();

@@ -27,6 +27,10 @@ namespace {
       RED, ORANGE, YELLOW, GREEN, BLUE, PURPLE, PINK,
    };
 
+   static const std::vector<float> level_speeds {
+      1.15f, 1.1f, 1.05f, 1.f, .95f, .9f, .85f, .8f, .75f, .7f, .65f, .55f, .45f, .35f, .25f, .175f
+   };
+
    constexpr Vector2 starting_pos {4, 1};
    constexpr Vector2 grid {12, 22};
    constexpr Vector2 next_grid {6, 6};
@@ -55,7 +59,7 @@ GameState::GameState() {
    for (int y = 0; y < next_grid.y; ++y) {
       std::vector<Tile> row;
       for (int x = 0; x < next_grid.x; ++x) {
-         if (y == 0 or y == next_grid.y - 1 or x == 0 or x == next_grid.x) {
+         if (y == 0 or y == next_grid.y - 1 or x == 0 or x == next_grid.x - 1) {
             Tile tile {Tile::border, GRAY};
             row.push_back(tile);
          } else {
@@ -94,6 +98,11 @@ void GameState::update() {
       pos = starting_pos;
       make_next_tetromino = false;
       down_timer = 0.f;
+
+      if (soft_drop or hard_drop) {
+         add_drop_score(hard_drop);
+      }
+      soft_drop = hard_drop = false;
    }
 
    clear_tetromino();
@@ -108,6 +117,7 @@ void GameState::update() {
    if ((key_pressed(KEY_DOWN) or key_pressed(KEY_S)) and can_move(tetromino, Path::down)) {
       pos.y++;
       down_timer = 0.f;
+      soft_drop = true;
    }
 
    pos.x += (key_pressed(KEY_RIGHT) or key_pressed(KEY_D)) and can_move(tetromino, Path::right);
@@ -118,6 +128,7 @@ void GameState::update() {
          pos.y++;
       }
       down_timer = down_after;
+      hard_drop = true;
    }
 
    down_timer += GetFrameTime();
@@ -175,6 +186,8 @@ void GameState::render() {
       DrawText("NEXT:", 13 * tile.x, tile.y, 20, WHITE);
       DrawText(("SCORE: "s + std::to_string(score)).c_str(), 13 * tile.x, 9 * tile.y, 20, WHITE);
       DrawText(("HI-SCORE: "s + std::to_string(hi_score)).c_str(), 13 * tile.x, 11 * tile.y, 20, WHITE);
+      DrawText(("LEVEL: "s + std::to_string(level)).c_str(), 13 * tile.x, 13 * tile.y, 20, WHITE);
+      DrawText(("COMBO: "s + std::to_string((combo_count == -1 ? 0 : combo_count))).c_str(), 13 * tile.x, 15 * tile.y, 20, WHITE);
    EndDrawing();
 }
 
@@ -282,16 +295,6 @@ void GameState::clear_cleared_rows() {
       }
    }
 
-   if (cleared.size() == 1) {
-      score += 100;
-   } else if (cleared.size() == 2) {
-      score += 300;
-   } else if (cleared.size() == 3) {
-      score += 500;
-   } else if (cleared.size() == 4) {
-      score += 800;
-   }
-
    for (const auto& cy : cleared) {
       for (int y = cy; y >= 1; --y) {
          for (int x = 1; x < grid.x - 1; ++x) {
@@ -303,9 +306,52 @@ void GameState::clear_cleared_rows() {
          }
       }
    }
+   total_clears += cleared.size();
+   level = std::min(total_clears / 10, 15);
+   down_after = level_speeds[level];
+
+   bool perfect = true;
+   for (int y = 1; y < grid.y - 1; ++y) {
+      for (int x = 1; x < grid.x - 1; ++x) {
+         if (tiles[y][x].type) {
+            perfect = false;
+            break;
+         }
+      }
+   }
+
+   if (cleared.empty()) {
+      combo_count = -1;
+   } else {
+      combo_count++;
+      add_score(50 * combo_count);
+   }
+
+   if (cleared.size() == 1) {
+      add_score((perfect ? 800 : 100));
+   } else if (cleared.size() == 2) {
+      add_score((perfect ? 1200 : 300));
+   } else if (cleared.size() == 3) {
+      add_score((perfect ? 1800 : 500));
+   } else if (cleared.size() == 4) {
+      add_score((perfect ? 2600 : 800));
+   }
 }
 
 // Utility functions
+
+void GameState::add_drop_score(bool hard) {
+   for (int y = 0; y < tetromino.size(); ++y) {
+      for (int x = 0; x < tetromino.size(); ++x) {
+         score += tetromino[y][x] * (hard + 1);
+      }
+   }
+}
+
+void GameState::add_score(int plus) {
+   int level_multiplier = (level == 0 ? 1 : level);
+   score += plus * level_multiplier;
+}
 
 bool GameState::key_pressed(int key) {
    return IsKeyPressed(key) or IsKeyPressedRepeat(key);
