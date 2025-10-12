@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <fstream>
 #include <random>
+#include <unordered_map>
 
 using namespace std::string_literals;
 using namespace std::string_view_literals;
@@ -14,13 +15,35 @@ using namespace std::string_view_literals;
 namespace {
    // Tetromino width and height must be the same!
    static const std::vector<Tetromino> tetrominoes {
-      {{1, 1}, {1, 1}},
-      {{0, 0, 1}, {1, 1, 1}, {0, 0, 0}},
-      {{1, 0, 0}, {1, 1, 1}, {0, 0, 0}},
-      {{0, 1, 1}, {1, 1, 0}, {0, 0, 0}},
-      {{1, 1, 0}, {0, 1, 1}, {0, 0, 0}},
-      {{0, 1, 0}, {1, 1, 1}, {0, 0, 0}},
-      {{0, 0, 0, 0}, {1, 1, 1, 1}, {0, 0, 0, 0}, {0, 0, 0, 0}},
+      {{{1, 1}, {1, 1}}},
+      {{{0, 0, 1}, {1, 1, 1}, {0, 0, 0}}},
+      {{{1, 0, 0}, {1, 1, 1}, {0, 0, 0}}},
+      {{{0, 1, 1}, {1, 1, 0}, {0, 0, 0}}},
+      {{{1, 1, 0}, {0, 1, 1}, {0, 0, 0}}},
+      {{{0, 1, 0}, {1, 1, 1}, {0, 0, 0}}, true},
+      {{{0, 0, 0, 0}, {1, 1, 1, 1}, {0, 0, 0, 0}, {0, 0, 0, 0}}},
+   };
+
+   static const std::unordered_map<int, std::vector<Vector2>> wall_kick_data_jlstz {
+      {0, {{0, 0}, {-1, 0}, {-1, -1}, {-1, +2}, {0, -2}}},
+      {4, {{0, 0}, {+1, 0}, {+1, +1}, {+1, +2}, {0, -2}}},
+      {1, {{0, 0}, {+1, 0}, {+1, +1}, {+1, +2}, {0, -2}}},
+      {5, {{0, 0}, {-1, 0}, {-1, -1}, {-1, +2}, {0, -2}}},
+      {2, {{0, 0}, {+1, 0}, {+1, -1}, {+1, +2}, {0, -2}}},
+      {6, {{0, 0}, {-1, 0}, {-1, +1}, {-1, +2}, {0, -2}}},
+      {3, {{0, 0}, {-1, 0}, {-1, +1}, {-1, +2}, {0, -2}}},
+      {7, {{0, 0}, {+1, 0}, {+1, -1}, {+1, +2}, {0, -2}}},
+   };
+
+   static const std::unordered_map<int, std::vector<Vector2>> wall_kick_data_i {
+      {0, {{0, 0}, {-2, 0}, {+1, 0}, {-2, +1}, {+1, -2}}},
+      {4, {{0, 0}, {+2, 0}, {-1, 0}, {+2, -1}, {-1, +2}}},
+      {1, {{0, 0}, {-1, 0}, {+2, 0}, {-1, -2}, {+2, +1}}},
+      {5, {{0, 0}, {+1, 0}, {-2, 0}, {+1, +2}, {-2, -1}}},
+      {2, {{0, 0}, {+2, 0}, {-1, 0}, {+2, -1}, {-1, +2}}},
+      {6, {{0, 0}, {-2, 0}, {+1, 0}, {-2, +1}, {+1, -2}}},
+      {3, {{0, 0}, {+1, 0}, {-2, 0}, {+1, +2}, {-2, -1}}},
+      {7, {{0, 0}, {-1, 0}, {+2, 0}, {-1, -2}, {+2, +1}}},
    };
 
    static const std::vector<Color> colors {
@@ -68,7 +91,7 @@ GameState::GameState() {
       }
       next_tiles.push_back(row);
    }
-   tetromino = get_random_tetromino();
+   tetromino = tetrominoes[5];//get_random_tetromino();
    color = get_random_color();
    next_tetromino = get_random_tetromino();
    next_color = get_random_color();
@@ -76,6 +99,9 @@ GameState::GameState() {
 
    hi_score = load_hi_score();
    pos = starting_pos;
+
+   Tile t {Tile::on, RED};
+   tiles[16][9] = tiles[16][10] = tiles[17][10] = tiles[18][1] = tiles[18][2]=tiles[18][3]=tiles[18][4]=tiles[18][5]=tiles[18][6]=tiles[18][7]=tiles[18][8]=tiles[18][10]=tiles[19][1]=tiles[19][2] =tiles[19][3]=tiles[19][4]=tiles[19][5]=tiles[19][6]=tiles[19][7]=tiles[19][7]=tiles[19][10]=tiles[20][1]=tiles[20][2]=tiles[20][3]=tiles[20][4]=tiles[20][5]=tiles[20][6]=tiles[20][7]=tiles[20][10] = t;
 }
 
 GameState::~GameState() {
@@ -106,22 +132,18 @@ void GameState::update() {
    }
 
    clear_tetromino();
-   if ((IsKeyPressed(KEY_UP) or IsKeyPressed(KEY_W)) and not rotate()) {
-      pos.x++;
-      if (not rotate()) {
-         pos.x -= 2;
-         pos.x += (not rotate());
-      }
+   if (IsKeyPressed(KEY_Q) or IsKeyPressed(KEY_E)) {
+      rotate_wall_kicks(IsKeyPressed(KEY_E));
    }
 
-   if ((key_pressed(KEY_DOWN) or key_pressed(KEY_S)) and can_move(tetromino, Path::down)) {
+   if ((IsKeyPressed(KEY_S) or IsKeyPressedRepeat(KEY_S)) and can_move(tetromino, Path::down)) {
       pos.y++;
       down_timer = 0.f;
       soft_drop = true;
    }
 
-   pos.x += (key_pressed(KEY_RIGHT) or key_pressed(KEY_D)) and can_move(tetromino, Path::right);
-   pos.x -= (key_pressed(KEY_LEFT) or key_pressed(KEY_A)) and can_move(tetromino, Path::left);
+   pos.x += (IsKeyPressed(KEY_D) or IsKeyPressedRepeat(KEY_D)) and can_move(tetromino, Path::right);
+   pos.x -= (IsKeyPressed(KEY_A) or IsKeyPressedRepeat(KEY_A)) and can_move(tetromino, Path::left);
 
    if (IsKeyPressed(KEY_SPACE)) {
       while (can_move(tetromino, Path::down)) {
@@ -174,9 +196,9 @@ void GameState::render() {
       }
 
       if (preview_y != pos.y) {
-         for (int y = preview_y; y < preview_y + (int)tetromino.size() and y < grid.y; ++y) {
-            for (int x = pos.x; x < pos.x + (int)tetromino.size() and x < grid.x; ++x) {
-               if (tetromino[y - preview_y][x - pos.x]) {
+         for (int y = preview_y; y < preview_y + (int)tetromino.tiles.size() and y < grid.y; ++y) {
+            for (int x = pos.x; x < pos.x + (int)tetromino.tiles.size() and x < grid.x; ++x) {
+               if (tetromino.tiles[y - preview_y][x - pos.x]) {
                   DrawRectangleLines(x * tile.x, y * tile.y, tile.x, tile.y, color);
                }
             }
@@ -200,9 +222,9 @@ void GameState::change_state(States& states) {
 // Draw functions
 
 void GameState::clear_tetromino() {
-   for (int y = pos.y; y < grid.y and y < pos.y + (int)tetromino.size(); ++y) {
-      for (int x = pos.x; x < grid.x and x < pos.x + (int)tetromino.size(); ++x) {
-         if (tetromino[y - pos.y][x - pos.x] and tiles[y][x].type != Tile::border) {
+   for (int y = pos.y; y < grid.y and y < pos.y + (int)tetromino.tiles.size(); ++y) {
+      for (int x = pos.x; x < grid.x and x < pos.x + (int)tetromino.tiles.size(); ++x) {
+         if (tetromino.tiles[y - pos.y][x - pos.x] and tiles[y][x].type != Tile::border) {
             tiles[y][x].type = Tile::off;
          }
       }
@@ -210,9 +232,9 @@ void GameState::clear_tetromino() {
 }
 
 void GameState::draw_tetromino() {
-   for (int y = pos.y; y < grid.y and y < pos.y + (int)tetromino.size(); ++y) {
-      for (int x = pos.x; x < grid.x and x < pos.x + (int)tetromino.size(); ++x) {
-         if (tetromino[y - pos.y][x - pos.x] and tiles[y][x].type != Tile::border) {
+   for (int y = pos.y; y < grid.y and y < pos.y + (int)tetromino.tiles.size(); ++y) {
+      for (int x = pos.x; x < grid.x and x < pos.x + (int)tetromino.tiles.size(); ++x) {
+         if (tetromino.tiles[y - pos.y][x - pos.x] and tiles[y][x].type != Tile::border) {
             tiles[y][x].type = Tile::on;
             tiles[y][x].color = color;
          }
@@ -226,12 +248,12 @@ void GameState::draw_next_tetromino() {
          next_tiles[y][x].type = Tile::off;
       }
    }
-   int ox = 1 + (next_tetromino.size() != 4);
-   int oy = 1 + (next_tetromino.size() == 2);
+   int ox = 1 + (next_tetromino.tiles.size() != 4);
+   int oy = 1 + (next_tetromino.tiles.size() == 2);
 
-   for (int y = oy; y < next_tetromino.size() + oy; ++y) {
-      for (int x = ox; x < next_tetromino.size() + ox; ++x) {
-         if (next_tetromino[y - oy][x - ox]) {
+   for (int y = oy; y < next_tetromino.tiles.size() + oy; ++y) {
+      for (int x = ox; x < next_tetromino.tiles.size() + ox; ++x) {
+         if (next_tetromino.tiles[y - oy][x - ox]) {
             next_tiles[y][x].type = Tile::on;
             next_tiles[y][x].color = next_color;
          }
@@ -242,9 +264,9 @@ void GameState::draw_next_tetromino() {
 // Collision functions
 
 bool GameState::can_move(Tetromino& tetromino, Path type) {
-   for (int y = pos.y; y < grid.y and y < pos.y + (int)tetromino.size(); ++y) {
-      for (int x = pos.x; x < grid.x and x < pos.x + (int)tetromino.size(); ++x) {
-         if (not tetromino[y - pos.y][x - pos.x]) {
+   for (int y = pos.y; y < grid.y and y < pos.y + (int)tetromino.tiles.size(); ++y) {
+      for (int x = pos.x; x < grid.x and x < pos.x + (int)tetromino.tiles.size(); ++x) {
+         if (not tetromino.tiles[y - pos.y][x - pos.x]) {
             continue;
          }
 
@@ -262,18 +284,42 @@ bool GameState::can_move(Tetromino& tetromino, Path type) {
    return true;
 }
 
-bool GameState::rotate() {
+void GameState::rotate_wall_kicks(bool right) {
+   if (tetromino.tiles.size() == 2) {
+      rotate(right);
+      return;
+   }
+   int rotation = tetromino.rotation + (not right) * 4;
+   Vector2 original_pos = pos;
+   const auto& data = (tetromino.tiles.size() == 3 ? wall_kick_data_jlstz.at(rotation) : wall_kick_data_i.at(rotation)); 
+
+   for (const auto& offset : data) {
+      pos = {original_pos.x + offset.x, original_pos.y + offset.y};
+      if (rotate(right)) {
+         tspin_info = {pos.y, offset.x, offset.y};
+         return;
+      }
+   }
+   pos = original_pos;
+}
+
+bool GameState::rotate(bool right) {
    Tetromino new_tetromino = tetromino;
 
-   for (int y = 0; y < tetromino.size(); ++y) {
-      for (int x = 0; x < tetromino.size(); ++x) {
-         new_tetromino[y][x] = tetromino[tetromino.size() - x - 1][y];
+   for (int y = 0; y < tetromino.tiles.size(); ++y) {
+      for (int x = 0; x < tetromino.tiles.size(); ++x) {
+         if (right) {
+            new_tetromino.tiles[y][x] = tetromino.tiles[tetromino.tiles.size() - x - 1][y];
+         } else {
+            new_tetromino.tiles[tetromino.tiles.size() - x - 1][y] = tetromino.tiles[y][x];
+         }
       }
    }
 
    bool can_rotate = can_move(new_tetromino, Path::current);
    if (can_rotate) {
       tetromino = new_tetromino;
+      tetromino.rotation = (tetromino.rotation + 1) % 4;
    }
    return can_rotate;
 }
@@ -320,6 +366,44 @@ void GameState::clear_cleared_rows() {
       }
    }
 
+   if (tetromino.is_t and tspin_info.x == pos.y) {
+      int front_count = 0;
+      int back_count  = 0;
+      
+      if (not tetromino.tiles[0][1]) {
+         front_count += tetromino.tiles[2][0] + tetromino.tiles[2][2];
+         back_count  += tetromino.tiles[0][0] + tetromino.tiles[0][2];
+      } else if (not tetromino.tiles[1][2]) {
+         front_count += tetromino.tiles[0][0] + tetromino.tiles[2][0];
+         back_count  += tetromino.tiles[0][2] + tetromino.tiles[2][2];
+      } else if (not tetromino.tiles[1][0]) {
+         front_count += tetromino.tiles[0][2] + tetromino.tiles[2][2];
+         back_count  += tetromino.tiles[0][0] + tetromino.tiles[2][0];
+      } else if (not tetromino.tiles[2][1]) {
+         front_count += tetromino.tiles[0][0] + tetromino.tiles[0][2];
+         back_count  += tetromino.tiles[2][0] + tetromino.tiles[2][2];
+      }
+
+      bool tspin_successful = false;
+      int multiplier = 1;
+
+      if ((front_count == 2 and back_count >= 1) or (tspin_info.y == 1 and tspin_info.z == 2)) {
+         tspin_successful = true;
+         multiplier = 4;
+      } else if (front_count >= 1 and back_count == 2) {
+         tspin_successful = true;
+      }
+
+      if (tspin_successful and cleared.empty()) {
+         add_score(100 * multiplier);
+      } else if (tspin_successful and cleared.size() == 1) {
+         add_score(200 * multiplier);
+      } else if (tspin_successful and cleared.size() == 2) {
+         add_score(400 * multiplier);
+      }
+   }
+   tspin_info = {0, 0, 0};
+
    if (cleared.empty()) {
       combo_count = -1;
    } else {
@@ -341,9 +425,9 @@ void GameState::clear_cleared_rows() {
 // Utility functions
 
 void GameState::add_drop_score(bool hard) {
-   for (int y = 0; y < tetromino.size(); ++y) {
-      for (int x = 0; x < tetromino.size(); ++x) {
-         score += tetromino[y][x] * (hard + 1);
+   for (int y = 0; y < tetromino.tiles.size(); ++y) {
+      for (int x = 0; x < tetromino.tiles.size(); ++x) {
+         score += tetromino.tiles[y][x] * (hard + 1);
       }
    }
 }
@@ -351,10 +435,6 @@ void GameState::add_drop_score(bool hard) {
 void GameState::add_score(int plus) {
    int level_multiplier = (level == 0 ? 1 : level);
    score += plus * level_multiplier;
-}
-
-bool GameState::key_pressed(int key) {
-   return IsKeyPressed(key) or IsKeyPressedRepeat(key);
 }
 
 Tetromino GameState::get_random_tetromino() {

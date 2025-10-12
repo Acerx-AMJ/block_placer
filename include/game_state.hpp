@@ -9,7 +9,11 @@
 
 // Structs
 
-using Tetromino = std::vector<std::vector<bool>>;
+struct Tetromino {
+   std::vector<std::vector<bool>> tiles;
+   bool is_t = false;
+   int rotation = 0;
+};
 
 struct Tile {
    enum Type { off, on, border };
@@ -36,6 +40,7 @@ class GameState : public State {
    Texture tile_tx;
    Vector2 tile;
    
+   Vector3 tspin_info = {0, 0, 0};
    int preview_y = 0;
    int score = 0;
    int hi_score = 0;
@@ -73,7 +78,8 @@ public:
    // Collision functions
 
    bool can_move(Tetromino& tetromino, Path type);
-   bool rotate();
+   void rotate_wall_kicks(bool right);
+   bool rotate(bool right);
 
    // Clear function
 
@@ -83,7 +89,6 @@ public:
 
    void add_drop_score(bool hard);
    void add_score(int plus);
-   bool key_pressed(int key);
    Tetromino get_random_tetromino();
    Color get_random_color();
 
