@@ -46,6 +46,7 @@ class GameState : public State {
    int hi_score = 0;
    int total_clears = 0;
    int combo_count = -1;
+   int difficult_count = 0;
    int level = 0;
    bool make_next_tetromino = false;
    bool soft_drop = false;

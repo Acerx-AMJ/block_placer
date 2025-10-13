@@ -91,7 +91,7 @@ GameState::GameState() {
       }
       next_tiles.push_back(row);
    }
-   tetromino = tetrominoes[5];//get_random_tetromino();
+   tetromino = get_random_tetromino();
    color = get_random_color();
    next_tetromino = get_random_tetromino();
    next_color = get_random_color();
@@ -99,9 +99,6 @@ GameState::GameState() {
 
    hi_score = load_hi_score();
    pos = starting_pos;
-
-   Tile t {Tile::on, RED};
-   tiles[16][9] = tiles[16][10] = tiles[17][10] = tiles[18][1] = tiles[18][2]=tiles[18][3]=tiles[18][4]=tiles[18][5]=tiles[18][6]=tiles[18][7]=tiles[18][8]=tiles[18][10]=tiles[19][1]=tiles[19][2] =tiles[19][3]=tiles[19][4]=tiles[19][5]=tiles[19][6]=tiles[19][7]=tiles[19][7]=tiles[19][10]=tiles[20][1]=tiles[20][2]=tiles[20][3]=tiles[20][4]=tiles[20][5]=tiles[20][6]=tiles[20][7]=tiles[20][10] = t;
 }
 
 GameState::~GameState() {
@@ -132,18 +129,18 @@ void GameState::update() {
    }
 
    clear_tetromino();
-   if (IsKeyPressed(KEY_Q) or IsKeyPressed(KEY_E)) {
-      rotate_wall_kicks(IsKeyPressed(KEY_E));
+   if (IsKeyPressed(KEY_Q) or IsKeyPressed(KEY_E) or IsKeyPressed(KEY_W) or IsKeyPressed(KEY_UP)) {
+      rotate_wall_kicks(not IsKeyPressed(KEY_Q));
    }
 
-   if ((IsKeyPressed(KEY_S) or IsKeyPressedRepeat(KEY_S)) and can_move(tetromino, Path::down)) {
+   if ((IsKeyPressed(KEY_S) or IsKeyPressedRepeat(KEY_S) or IsKeyPressed(KEY_DOWN) or IsKeyPressedRepeat(KEY_DOWN)) and can_move(tetromino, Path::down)) {
       pos.y++;
       down_timer = 0.f;
       soft_drop = true;
    }
 
-   pos.x += (IsKeyPressed(KEY_D) or IsKeyPressedRepeat(KEY_D)) and can_move(tetromino, Path::right);
-   pos.x -= (IsKeyPressed(KEY_A) or IsKeyPressedRepeat(KEY_A)) and can_move(tetromino, Path::left);
+   pos.x += (IsKeyPressed(KEY_D) or IsKeyPressedRepeat(KEY_D) or IsKeyPressed(KEY_RIGHT) or IsKeyPressedRepeat(KEY_RIGHT)) and can_move(tetromino, Path::right);
+   pos.x -= (IsKeyPressed(KEY_A) or IsKeyPressedRepeat(KEY_A) or IsKeyPressed(KEY_LEFT) or IsKeyPressedRepeat(KEY_LEFT)) and can_move(tetromino, Path::left);
 
    if (IsKeyPressed(KEY_SPACE)) {
       while (can_move(tetromino, Path::down)) {
@@ -366,40 +363,41 @@ void GameState::clear_cleared_rows() {
       }
    }
 
+   bool tspinned = false;
    if (tetromino.is_t and tspin_info.x == pos.y) {
       int front_count = 0;
-      int back_count  = 0;
+      int back_count = 0;
       
       if (not tetromino.tiles[0][1]) {
-         front_count += tetromino.tiles[2][0] + tetromino.tiles[2][2];
-         back_count  += tetromino.tiles[0][0] + tetromino.tiles[0][2];
+         front_count += (bool)tiles[pos.y + 2][pos.x].type + (bool)tiles[pos.y + 2][pos.x + 2].type;
+         back_count += (bool)tiles[pos.y][pos.x].type + (bool)tiles[pos.y][pos.x + 2].type;
       } else if (not tetromino.tiles[1][2]) {
-         front_count += tetromino.tiles[0][0] + tetromino.tiles[2][0];
-         back_count  += tetromino.tiles[0][2] + tetromino.tiles[2][2];
+         front_count += (bool)tiles[pos.y][pos.x].type + (bool)tiles[pos.y + 2][pos.x].type;
+         back_count += (bool)tiles[pos.y][pos.x + 2].type + (bool)tiles[pos.y + 2][pos.x + 2].type;
       } else if (not tetromino.tiles[1][0]) {
-         front_count += tetromino.tiles[0][2] + tetromino.tiles[2][2];
-         back_count  += tetromino.tiles[0][0] + tetromino.tiles[2][0];
+         front_count += (bool)tiles[pos.y][pos.x + 2].type + (bool)tiles[pos.y + 2][pos.x + 2].type;
+         back_count += (bool)tiles[pos.y][pos.x].type + (bool)tiles[pos.y + 2][pos.x].type;
       } else if (not tetromino.tiles[2][1]) {
-         front_count += tetromino.tiles[0][0] + tetromino.tiles[0][2];
-         back_count  += tetromino.tiles[2][0] + tetromino.tiles[2][2];
+         front_count += (bool)tiles[pos.y][pos.x].type + (bool)tiles[pos.y][pos.x + 2].type;
+         back_count += (bool)tiles[pos.y + 2][pos.x].type + (bool)tiles[pos.y + 2][pos.x + 2].type;
       }
-
-      bool tspin_successful = false;
       int multiplier = 1;
 
       if ((front_count == 2 and back_count >= 1) or (tspin_info.y == 1 and tspin_info.z == 2)) {
-         tspin_successful = true;
+         tspinned = true;
          multiplier = 4;
       } else if (front_count >= 1 and back_count == 2) {
-         tspin_successful = true;
+         tspinned = true;
       }
 
-      if (tspin_successful and cleared.empty()) {
+      if (tspinned and cleared.empty()) {
          add_score(100 * multiplier);
-      } else if (tspin_successful and cleared.size() == 1) {
+      } else if (tspinned and cleared.size() == 1) {
          add_score(200 * multiplier);
-      } else if (tspin_successful and cleared.size() == 2) {
+         difficult_count++;
+      } else if (tspinned and cleared.size() == 2) {
          add_score(400 * multiplier);
+         difficult_count++;
       }
    }
    tspin_info = {0, 0, 0};
@@ -419,6 +417,11 @@ void GameState::clear_cleared_rows() {
       add_score((perfect ? 1800 : 500));
    } else if (cleared.size() == 4) {
       add_score((perfect ? 2600 : 800));
+      difficult_count++;
+   }
+
+   if (cleared.size() != 4 and not tspinned and not cleared.empty()) {
+      difficult_count = 0;
    }
 }
 
@@ -434,7 +437,7 @@ void GameState::add_drop_score(bool hard) {
 
 void GameState::add_score(int plus) {
    int level_multiplier = (level == 0 ? 1 : level);
-   score += plus * level_multiplier;
+   score += plus * level_multiplier * (difficult_count >= 2 ? 1.5f : 1.f);
 }
 
 Tetromino GameState::get_random_tetromino() {
