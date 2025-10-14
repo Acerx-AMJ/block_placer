@@ -9,7 +9,7 @@
 // Constants
 
 namespace {
-   constexpr const char* title = "Tetris Clone";
+   constexpr const char* title = "Block Placer";
    constexpr Vector2 screen {636, 700};
    constexpr int target_fps = 60;
 }
