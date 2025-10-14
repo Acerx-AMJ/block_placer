@@ -2,7 +2,7 @@
 
 // Includes
 
-#include "game_state.hpp"
+#include "menu_state.hpp"
 #include <raylib.h>
 #include <cstdlib>
 
@@ -21,7 +21,10 @@ Game::Game() {
    InitWindow(screen.x, screen.y, title);
    SetTargetFPS(target_fps);
 
-   states.push_back(std::make_unique<GameState>());
+   auto icon = LoadImage("assets/icon.png");
+   SetWindowIcon(icon);
+
+   states.push_back(std::make_unique<MenuState>());
 }
 
 Game::~Game() {
