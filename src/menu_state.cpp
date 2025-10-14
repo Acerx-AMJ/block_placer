@@ -61,7 +61,7 @@ void MenuState::update_fading_out() {
 void MenuState::render() {
    BeginDrawing();
       DrawRectangleRec(button_bounds, GRAY);
-      DrawText("TETRIS CLONE", GetScreenWidth() / 2.f - MeasureText("TETRIS CLONE", 60) / 2.f, 150.f, 60, WHITE);
+      DrawText("BLOCK PLACER", GetScreenWidth() / 2.f - MeasureText("BLOCK PLACER", 60) / 2.f, 150.f, 60, WHITE);
       DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), screen_tint);
    EndDrawing();
 }
