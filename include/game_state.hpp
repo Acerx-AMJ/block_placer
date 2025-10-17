@@ -26,6 +26,7 @@ struct Tile {
 
 class GameState : public State {
    enum class Path { left, right, down, current };
+   enum class Phase { fading_in, fading_out, playing, paused };
 
    std::vector<std::vector<Tile>> tiles;
    std::vector<std::vector<Tile>> next_tiles;
@@ -36,6 +37,7 @@ class GameState : public State {
    Color color;
    Color next_color;
    Vector2 pos;
+   Color screen_tint;
 
    Texture tile_tx;
    Vector2 tile;
@@ -51,8 +53,11 @@ class GameState : public State {
    bool make_next_tetromino = false;
    bool soft_drop = false;
    bool hard_drop = false;
-   float down_timer = 0.f;
-   float down_after = 1.f;
+   float down_timer = 0;
+   float down_after = 1;
+   float fade_in_timer = 0;
+   float fade_out_timer = 0;
+   Phase phase = Phase::fading_in;
    
 public:
    GameState();
@@ -61,6 +66,10 @@ public:
    // Update functions
 
    void update() override;
+   void update_fading_in();
+   void update_fading_out();
+   void update_game();
+   void update_pause_screen();
 
    // Render function
 

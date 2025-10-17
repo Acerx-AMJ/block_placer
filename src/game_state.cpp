@@ -2,8 +2,10 @@
 
 // Includes
 
+#include "menu_state.hpp"
 #include <algorithm>
 #include <fstream>
+#include <iostream>
 #include <random>
 #include <unordered_map>
 
@@ -58,6 +60,8 @@ namespace {
    constexpr Vector2 grid {12, 22};
    constexpr Vector2 next_grid {6, 6};
    constexpr float tile_scale = .5f;
+   constexpr float fade_in_time = .5f;
+   constexpr float fade_out_time = .5f;
 }
 
 // Constructor
@@ -99,6 +103,7 @@ GameState::GameState() {
 
    hi_score = load_hi_score();
    pos = starting_pos;
+   screen_tint = BLACK;
 }
 
 GameState::~GameState() {
@@ -110,6 +115,36 @@ GameState::~GameState() {
 // Update functions
 
 void GameState::update() {
+   switch (phase) {
+   case Phase::fading_in:  update_fading_in();    break;
+   case Phase::fading_out: update_fading_out();   break;
+   case Phase::playing:    update_game();         break;
+   case Phase::paused:     update_pause_screen(); break;
+   }
+}
+
+void GameState::update_fading_in() {
+   fade_in_timer += GetFrameTime();
+   screen_tint.a = 255 - 255 * (fade_in_timer / fade_in_time);
+   
+   if (fade_in_timer >= fade_in_time) {
+      phase = Phase::playing;
+      screen_tint.a = 0;
+   }
+   update_game();
+}
+
+void GameState::update_fading_out() {
+   fade_out_timer += GetFrameTime();
+   screen_tint.a = 255 * (fade_out_timer / fade_out_time);
+
+   if (fade_out_timer >= fade_out_time) {
+      quit = true;
+      screen_tint.a = 255;
+   }
+}
+
+void GameState::update_game() {
    if (make_next_tetromino) {
       clear_cleared_rows();
       tetromino = next_tetromino;
@@ -126,6 +161,12 @@ void GameState::update() {
          add_drop_score(hard_drop);
       }
       soft_drop = hard_drop = false;
+
+      if (not can_move(tetromino, Path::current)) {
+         preview_y = pos.y;
+         phase = Phase::fading_out;
+         return;
+      }
    }
 
    clear_tetromino();
@@ -168,6 +209,14 @@ void GameState::update() {
    }
    pos.y = original;
    draw_tetromino();
+
+   if (IsKeyPressed(KEY_ESCAPE)) {
+      phase = Phase::paused;
+   }
+}
+
+void GameState::update_pause_screen() {
+
 }
 
 // Render function
@@ -207,13 +256,14 @@ void GameState::render() {
       DrawText(("HI-SCORE: "s + std::to_string(hi_score)).c_str(), 13 * tile.x, 11 * tile.y, 20, WHITE);
       DrawText(("LEVEL: "s + std::to_string(level)).c_str(), 13 * tile.x, 13 * tile.y, 20, WHITE);
       DrawText(("COMBO: "s + std::to_string((combo_count == -1 ? 0 : combo_count))).c_str(), 13 * tile.x, 15 * tile.y, 20, WHITE);
+      DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), screen_tint);
    EndDrawing();
 }
 
 // Change states function
 
 void GameState::change_state(States& states) {
-
+   states.push_back(std::make_unique<MenuState>());
 }
 
 // Draw functions
