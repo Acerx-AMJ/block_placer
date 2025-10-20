@@ -3,20 +3,21 @@
 
 // Includes
 
+#include "button.hpp"
 #include "state.hpp"
-#include <raylib.h>
 
 // Menu state
 
 class MenuState : public State {
    enum class Phase { fading_in, idle, fading_out };
    
-   Rectangle button_bounds;
-   Color screen_tint {0, 0, 0, 255};
-
+   bool quit_for_good = false;
    float fade_in_timer = 0;
    float fade_out_timer = 0;
    Phase phase = Phase::fading_in;
+
+   Button play_button, quit_button;
+   Color screen_tint {0, 0, 0, 255};
    
 public:
    MenuState();

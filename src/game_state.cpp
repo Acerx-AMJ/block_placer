@@ -53,7 +53,7 @@ namespace {
    };
 
    static const std::vector<float> level_speeds {
-      1.15f, 1.1f, 1.05f, 1.f, .95f, .9f, .85f, .8f, .75f, .7f, .65f, .55f, .45f, .35f, .25f, .175f
+      1.1f, 1.05f, 1.f, .95f, .9f, .85f, .8f, .7f, .6f, .5f, .4f, .35f, .3f, .25f, .2f, .175f
    };
 
    constexpr Vector2 starting_pos {4, 1};
@@ -62,6 +62,7 @@ namespace {
    constexpr float tile_scale = .5f;
    constexpr float fade_in_time = .5f;
    constexpr float fade_out_time = .5f;
+   constexpr int rows_for_level_up = 9;
 }
 
 // Constructor
@@ -118,6 +119,7 @@ GameState::~GameState() {
    if (score >= hi_score) {
       save_hi_score(score);
    }
+   UnloadTexture(tile_tx);
 }
 
 // Update functions
@@ -434,7 +436,7 @@ void GameState::clear_cleared_rows() {
       }
    }
    total_clears += cleared.size();
-   level = std::min(total_clears / 10, 15);
+   level = std::min(total_clears / rows_for_level_up, 15);
    down_after = level_speeds[level];
 
    bool perfect = true;

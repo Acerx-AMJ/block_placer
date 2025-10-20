@@ -14,7 +14,10 @@ namespace {
 // Constructors
 
 MenuState::MenuState() {
-   button_bounds = {GetScreenWidth() / 2.f - 75.f, 300.f, 150.f, 150.f};
+   play_button.rectangle = {GetScreenWidth() / 2.f, 250.f, 175.f, 50.f};
+   quit_button.rectangle = {play_button.rectangle.x, play_button.rectangle.y + 75.f, 175.f, 50.f};
+   play_button.text = "PLAY";
+   quit_button.text = "QUIT";
 }
 
 // Update functions
@@ -38,11 +41,16 @@ void MenuState::update_fading_in() {
 }
 
 void MenuState::update_idle_state() {
-   auto mouse = GetMousePosition();
-   bool hovering = CheckCollisionPointRec(mouse, button_bounds);
+   play_button.update();
+   quit_button.update();
 
-   if (hovering and IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+   if (play_button.clicked) {
       phase = Phase::fading_out;
+   }
+
+   if (quit_button.clicked) {
+      phase = Phase::fading_out;
+      quit_for_good = true;
    }
 }
 
@@ -60,7 +68,9 @@ void MenuState::update_fading_out() {
 
 void MenuState::render() {
    BeginDrawing();
-      DrawRectangleRec(button_bounds, GRAY);
+      ClearBackground(BLACK);
+      play_button.draw();
+      quit_button.draw();
       DrawText("BLOCK PLACER", GetScreenWidth() / 2.f - MeasureText("BLOCK PLACER", 60) / 2.f, 150.f, 60, WHITE);
       DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), screen_tint);
    EndDrawing();
@@ -69,5 +79,7 @@ void MenuState::render() {
 // Change states function
 
 void MenuState::change_state(States& states) {
-   states.push_back(std::make_unique<GameState>());
+   if (not quit_for_good) {
+      states.push_back(std::make_unique<GameState>());
+   }
 }
