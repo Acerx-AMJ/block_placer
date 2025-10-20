@@ -3,8 +3,8 @@
 
 // Includes
 
+#include "button.hpp"
 #include "state.hpp"
-#include <raylib.h>
 #include <vector>
 
 // Structs
@@ -41,7 +41,8 @@ class GameState : public State {
 
    Texture tile_tx;
    Vector2 tile;
-   
+   Button continue_button, restart_button, menu_button;
+
    Vector3 tspin_info = {0, 0, 0};
    int preview_y = 0;
    int score = 0;
@@ -53,6 +54,7 @@ class GameState : public State {
    bool make_next_tetromino = false;
    bool soft_drop = false;
    bool hard_drop = false;
+   bool restart = false;
    float down_timer = 0;
    float down_after = 1;
    float fade_in_timer = 0;

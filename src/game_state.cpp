@@ -104,6 +104,14 @@ GameState::GameState() {
    hi_score = load_hi_score();
    pos = starting_pos;
    screen_tint = BLACK;
+
+   restart_button.rectangle = {GetScreenWidth() / 2.f, GetScreenHeight() / 2.f, 175.f, 50.f};
+   continue_button.rectangle = {restart_button.rectangle.x - 185.f, restart_button.rectangle.y, 175.f, 50.f};
+   menu_button.rectangle = {restart_button.rectangle.x + 185.f, restart_button.rectangle.y, 175.f, 50.f};
+
+   restart_button.text = "RESTART";
+   continue_button.text = "CONTINUE";
+   menu_button.text = "MENU";
 }
 
 GameState::~GameState() {
@@ -216,8 +224,21 @@ void GameState::update_game() {
 }
 
 void GameState::update_pause_screen() {
-   if (IsKeyPressed(KEY_ESCAPE)) {
+   continue_button.update();
+   restart_button.update();
+   menu_button.update();
+
+   if (IsKeyPressed(KEY_ESCAPE) or continue_button.clicked) {
       phase = Phase::playing;
+   }
+
+   if (restart_button.clicked) {
+      phase = Phase::fading_out;
+      restart = true;
+   }
+
+   if (menu_button.clicked) {
+      phase = Phase::fading_out;
    }
 }
 
@@ -261,6 +282,9 @@ void GameState::render() {
 
       if (phase == Phase::paused) {
          DrawText("PAUSED", GetScreenWidth() / 2.f - MeasureText("PAUSED", 60) / 2.f, GetScreenHeight() / 3.f, 60, WHITE);
+         continue_button.draw();
+         restart_button.draw();
+         menu_button.draw();
       }
       DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), screen_tint);
    EndDrawing();
@@ -269,7 +293,11 @@ void GameState::render() {
 // Change states function
 
 void GameState::change_state(States& states) {
-   states.push_back(std::make_unique<MenuState>());
+   if (restart) {
+      states.push_back(std::make_unique<GameState>());
+   } else {
+      states.push_back(std::make_unique<MenuState>());
+   }
 }
 
 // Draw functions
