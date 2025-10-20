@@ -210,13 +210,15 @@ void GameState::update_game() {
    pos.y = original;
    draw_tetromino();
 
-   if (IsKeyPressed(KEY_ESCAPE)) {
+   if (IsKeyPressed(KEY_ESCAPE) and phase == Phase::playing) {
       phase = Phase::paused;
    }
 }
 
 void GameState::update_pause_screen() {
-
+   if (IsKeyPressed(KEY_ESCAPE)) {
+      phase = Phase::playing;
+   }
 }
 
 // Render function
@@ -256,6 +258,10 @@ void GameState::render() {
       DrawText(("HI-SCORE: "s + std::to_string(hi_score)).c_str(), 13 * tile.x, 11 * tile.y, 20, WHITE);
       DrawText(("LEVEL: "s + std::to_string(level)).c_str(), 13 * tile.x, 13 * tile.y, 20, WHITE);
       DrawText(("COMBO: "s + std::to_string((combo_count == -1 ? 0 : combo_count))).c_str(), 13 * tile.x, 15 * tile.y, 20, WHITE);
+
+      if (phase == Phase::paused) {
+         DrawText("PAUSED", GetScreenWidth() / 2.f - MeasureText("PAUSED", 60) / 2.f, GetScreenHeight() / 3.f, 60, WHITE);
+      }
       DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), screen_tint);
    EndDrawing();
 }
