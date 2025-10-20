@@ -20,6 +20,7 @@ Game::Game() {
    srand(time(nullptr));
    InitWindow(screen.x, screen.y, title);
    SetTargetFPS(target_fps);
+   SetExitKey(0);
 
    auto icon = LoadImage("assets/icon.png");
    SetWindowIcon(icon);
