@@ -36,7 +36,7 @@ class GameState : public State {
    Tetromino next_tetromino;
    Color color;
    Color next_color;
-   Vector2 pos;
+   Vector2 pos, grid;
    Color screen_tint, lost_color;
 
    Texture tile_tx;
@@ -45,6 +45,7 @@ class GameState : public State {
    Sound btb_sound, combo_sound, lost_sound, place_sound;
 
    Vector3 tspin_info = {0, 0, 0};
+   int game_width = 0;
    int preview_y = 0;
    int score = 0;
    int hi_score = 0;
@@ -65,7 +66,7 @@ class GameState : public State {
    Phase phase = Phase::fading_in;
    
 public:
-   GameState();
+   GameState(const Vector2& grid_size);
    ~GameState();
 
    // Update functions
