@@ -105,6 +105,7 @@ GameState::GameState() {
    hi_score = load_hi_score();
    pos = starting_pos;
    screen_tint = BLACK;
+   lost_color = {0, 0, 0, 0};
 
    restart_button.rectangle = {GetScreenWidth() / 2.f, GetScreenHeight() / 2.f, 175.f, 50.f};
    continue_button.rectangle = {restart_button.rectangle.x - 185.f, restart_button.rectangle.y, 175.f, 50.f};
@@ -113,6 +114,11 @@ GameState::GameState() {
    restart_button.text = "RESTART";
    continue_button.text = "CONTINUE";
    menu_button.text = "MENU";
+
+   btb_sound = LoadSound("assets/back_to_back.wav");
+   combo_sound = LoadSound("assets/combo.wav");
+   lost_sound = LoadSound("assets/lost.wav");
+   place_sound = LoadSound("assets/place.wav");
 }
 
 GameState::~GameState() {
@@ -120,6 +126,10 @@ GameState::~GameState() {
       save_hi_score(score);
    }
    UnloadTexture(tile_tx);
+   UnloadSound(btb_sound);
+   UnloadSound(combo_sound);
+   UnloadSound(lost_sound);
+   UnloadSound(place_sound);
 }
 
 // Update functions
@@ -130,6 +140,7 @@ void GameState::update() {
    case Phase::fading_out: update_fading_out();   break;
    case Phase::playing:    update_game();         break;
    case Phase::paused:     update_pause_screen(); break;
+   case Phase::lost:       update_lost_screen();  break;
    }
 }
 
@@ -173,8 +184,13 @@ void GameState::update_game() {
       soft_drop = hard_drop = false;
 
       if (not can_move(tetromino, Path::current)) {
+         lost = true;
+         PlaySound(lost_sound);
          preview_y = pos.y;
-         phase = Phase::fading_out;
+         phase = Phase::lost;
+
+         restart_button.rectangle.x = GetScreenWidth() / 2.f - 92.5f;
+         menu_button.rectangle.x = GetScreenWidth() / 2.f + 92.5f;
          return;
       }
    }
@@ -208,6 +224,7 @@ void GameState::update_game() {
       if (can_move(tetromino, Path::down)) {
          pos.y++;
       } else {
+         PlaySound(place_sound);
          make_next_tetromino = true;
       }
    }
@@ -242,6 +259,27 @@ void GameState::update_pause_screen() {
    if (menu_button.clicked) {
       phase = Phase::fading_out;
    }
+}
+
+void GameState::update_lost_screen() {
+   lost_timer += GetFrameTime();
+   lost_color.a = 255 * lost_timer;
+
+   if (lost_timer >= 1.f) {
+      lost_color.a = 255;   
+   }
+   
+   restart_button.update();
+   menu_button.update();
+
+   if (restart_button.clicked) {
+      phase = Phase::fading_out;
+      restart = true;
+   }
+
+   if (menu_button.clicked) {
+      phase = Phase::fading_out;
+   }   
 }
 
 // Render function
@@ -285,6 +323,17 @@ void GameState::render() {
       if (phase == Phase::paused) {
          DrawText("PAUSED", GetScreenWidth() / 2.f - MeasureText("PAUSED", 60) / 2.f, GetScreenHeight() / 3.f, 60, WHITE);
          continue_button.draw();
+         restart_button.draw();
+         menu_button.draw();
+      } else if (lost) {
+         DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), lost_color);
+
+         std::string final_score = "SCORE: "s + std::to_string(score);
+         std::string best_score = "HI-SCORE: "s + std::to_string(hi_score);
+         DrawText(final_score.c_str(), GetScreenWidth() / 2.f - MeasureText(final_score.c_str(), 30) / 2.f, GetScreenHeight() / 4.f + 50.f, 30, WHITE);
+         DrawText(best_score.c_str(), GetScreenWidth() / 2.f - MeasureText(best_score.c_str(), 30) / 2.f, GetScreenHeight() / 4.f + 100.f, 30, WHITE);
+         DrawText("GAME OVER", GetScreenWidth() / 2.f - MeasureText("GAME OVER", 60) / 2.f, GetScreenHeight() / 4.f - 10.f, 60, WHITE);
+
          restart_button.draw();
          menu_button.draw();
       }
@@ -410,6 +459,7 @@ bool GameState::rotate(bool right) {
 // Clear function
 
 void GameState::clear_cleared_rows() {
+   int last_difficult = difficult_count;
    std::vector<int> cleared;
 
    for (int y = 1; y < grid.y - 1; ++y) {
@@ -493,6 +543,10 @@ void GameState::clear_cleared_rows() {
    } else {
       combo_count++;
       add_score(50 * combo_count);
+
+      if (combo_count > 0) {
+         PlaySound(combo_sound);
+      }
    }
 
    if (cleared.size() == 1) {
@@ -508,6 +562,10 @@ void GameState::clear_cleared_rows() {
 
    if (cleared.size() != 4 and not tspinned and not cleared.empty()) {
       difficult_count = 0;
+   }
+
+   if (difficult_count >= 2 and last_difficult != difficult_count) {
+      PlaySound(btb_sound);
    }
 }
 

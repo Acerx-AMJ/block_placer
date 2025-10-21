@@ -19,17 +19,21 @@ namespace {
 Game::Game() {
    srand(time(nullptr));
    InitWindow(screen.x, screen.y, title);
+   InitAudioDevice();
    SetTargetFPS(target_fps);
    SetExitKey(0);
 
    auto icon = LoadImage("assets/icon.png");
    SetWindowIcon(icon);
+   load_button_sounds();
 
    states.push_back(std::make_unique<MenuState>());
 }
 
 Game::~Game() {
    CloseWindow();
+   CloseAudioDevice();
+   unload_button_sounds();
 }
 
 // Run function

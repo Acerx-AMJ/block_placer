@@ -1,7 +1,30 @@
 #include "button.hpp"
+
+// Includes
+
 #include <algorithm>
 
+// Sounds
+
+Sound hover_sound;
+Sound click_sound;
+
+// Sound functions
+
+void load_button_sounds() {
+   hover_sound = LoadSound("assets/hover.wav");
+   click_sound = LoadSound("assets/click.wav");
+}
+
+void unload_button_sounds() {
+   UnloadSound(hover_sound);
+   UnloadSound(click_sound);
+}
+
+// Button functions
+
 void Button::update() {
+   bool was_hovering = hovering;
    hovering = CheckCollisionPointRec({GetMouseX() + rectangle.width / 2.f, GetMouseY() + rectangle.height / 2.f}, rectangle);
    down = hovering and IsMouseButtonDown(MOUSE_LEFT_BUTTON);
    clicked = hovering and IsMouseButtonReleased(MOUSE_LEFT_BUTTON);
@@ -12,6 +35,14 @@ void Button::update() {
       scale = std::min(scale * 1.025f, 1.1f);
    } else if (scale != 1.f) {
       scale = (scale < 1.f ? std::min(1.f, scale * 1.025f) : std::max(1.f, scale * .975f));
+   }
+
+   if (not was_hovering and hovering) {
+      PlaySound(hover_sound);
+   }
+
+   if (clicked) {
+      PlaySound(click_sound);
    }
 }
 
