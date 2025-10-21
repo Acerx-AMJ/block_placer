@@ -12,11 +12,12 @@ class MenuState : public State {
    enum class Phase { fading_in, idle, fading_out };
    
    bool quit_for_good = false;
+   bool play_co_op = false;
    float fade_in_timer = 0;
    float fade_out_timer = 0;
    Phase phase = Phase::fading_in;
 
-   Button play_button, quit_button;
+   Button play_button, co_op_button, quit_button;
    Color screen_tint {0, 0, 0, 255};
    
 public:

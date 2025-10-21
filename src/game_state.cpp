@@ -56,8 +56,6 @@ namespace {
       1.1f, 1.05f, 1.f, .95f, .9f, .85f, .8f, .7f, .6f, .5f, .4f, .35f, .3f, .25f, .2f, .175f
    };
 
-   constexpr Vector2 starting_pos {4, 1};
-   constexpr Vector2 grid {12, 22};
    constexpr Vector2 next_grid {6, 6};
    constexpr float tile_scale = .5f;
    constexpr float fade_in_time = .5f;
@@ -67,7 +65,8 @@ namespace {
 
 // Constructor
 
-GameState::GameState() {
+GameState::GameState(const Vector2& grid)
+   : grid(grid) {
    tile_tx = LoadTexture("assets/tile.png");
    tile = {tile_tx.width * tile_scale, tile_tx.height * tile_scale};
 
@@ -103,9 +102,12 @@ GameState::GameState() {
    draw_next_tetromino();
 
    hi_score = load_hi_score();
-   pos = starting_pos;
+   pos = {(grid.x - 2) / 2, 1};
    screen_tint = BLACK;
    lost_color = {0, 0, 0, 0};
+
+   SetWindowSize(tile.x * (grid.x + 8), GetScreenHeight());
+   game_width = tile.x * (grid.x + 1);
 
    restart_button.rectangle = {GetScreenWidth() / 2.f, GetScreenHeight() / 2.f, 175.f, 50.f};
    continue_button.rectangle = {restart_button.rectangle.x - 185.f, restart_button.rectangle.y, 175.f, 50.f};
@@ -119,6 +121,7 @@ GameState::GameState() {
    combo_sound = LoadSound("assets/combo.wav");
    lost_sound = LoadSound("assets/lost.wav");
    place_sound = LoadSound("assets/place.wav");
+
 }
 
 GameState::~GameState() {
@@ -174,7 +177,7 @@ void GameState::update_game() {
       next_color = get_random_color();
       draw_next_tetromino();
 
-      pos = starting_pos;
+      pos = {(grid.x - 2) / 2, 1};
       make_next_tetromino = false;
       down_timer = 0.f;
 
@@ -299,7 +302,7 @@ void GameState::render() {
       for (int y = 0; y < next_grid.y; ++y) {
          for (int x = 0; x < next_grid.x; ++x) {
             if (next_tiles[y][x].type) {
-               DrawTextureEx(tile_tx, {(x + 13) * tile.x, (y + 2) * tile.y}, 0.f, tile_scale, next_tiles[y][x].color);
+               DrawTextureEx(tile_tx, {(x + grid.x + 1) * tile.x, (y + 2) * tile.y}, 0.f, tile_scale, next_tiles[y][x].color);
             }
          }
       }
@@ -314,11 +317,11 @@ void GameState::render() {
          }
       }
 
-      DrawText("NEXT:", 13 * tile.x, tile.y, 20, WHITE);
-      DrawText(("SCORE: "s + std::to_string(score)).c_str(), 13 * tile.x, 9 * tile.y, 20, WHITE);
-      DrawText(("HI-SCORE: "s + std::to_string(hi_score)).c_str(), 13 * tile.x, 11 * tile.y, 20, WHITE);
-      DrawText(("LEVEL: "s + std::to_string(level)).c_str(), 13 * tile.x, 13 * tile.y, 20, WHITE);
-      DrawText(("COMBO: "s + std::to_string((combo_count == -1 ? 0 : combo_count))).c_str(), 13 * tile.x, 15 * tile.y, 20, WHITE);
+      DrawText("NEXT:", game_width, tile.y, 20, WHITE);
+      DrawText(("SCORE: "s + std::to_string(score)).c_str(), game_width, 9 * tile.y, 20, WHITE);
+      DrawText(("HI-SCORE: "s + std::to_string(hi_score)).c_str(), game_width, 11 * tile.y, 20, WHITE);
+      DrawText(("LEVEL: "s + std::to_string(level)).c_str(), game_width, 13 * tile.y, 20, WHITE);
+      DrawText(("COMBO: "s + std::to_string((combo_count == -1 ? 0 : combo_count))).c_str(), game_width, 15 * tile.y, 20, WHITE);
 
       if (phase == Phase::paused) {
          DrawText("PAUSED", GetScreenWidth() / 2.f - MeasureText("PAUSED", 60) / 2.f, GetScreenHeight() / 3.f, 60, WHITE);
@@ -345,7 +348,7 @@ void GameState::render() {
 
 void GameState::change_state(States& states) {
    if (restart) {
-      states.push_back(std::make_unique<GameState>());
+      states.push_back(std::make_unique<GameState>(grid));
    } else {
       states.push_back(std::make_unique<MenuState>());
    }
