@@ -4,6 +4,9 @@
 #include "raylib.h"
 #include <string>
 
+void load_button_sounds();
+void unload_button_sounds();
+
 class Button {
 public:
    Rectangle rectangle;
