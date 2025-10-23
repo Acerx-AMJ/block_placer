@@ -2,24 +2,8 @@
 
 // Includes
 
+#include "audio.hpp"
 #include <algorithm>
-
-// Sounds
-
-Sound hover_sound;
-Sound click_sound;
-
-// Sound functions
-
-void load_button_sounds() {
-   hover_sound = LoadSound("assets/hover.wav");
-   click_sound = LoadSound("assets/click.wav");
-}
-
-void unload_button_sounds() {
-   UnloadSound(hover_sound);
-   UnloadSound(click_sound);
-}
 
 // Button functions
 
@@ -38,11 +22,11 @@ void Button::update() {
    }
 
    if (not was_hovering and hovering) {
-      PlaySound(hover_sound);
+      play_audio("hover"s);
    }
 
    if (clicked) {
-      PlaySound(click_sound);
+      play_audio("click"s);
    }
 }
 
