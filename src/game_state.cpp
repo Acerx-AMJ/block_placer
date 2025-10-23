@@ -171,7 +171,6 @@ void GameState::update_fading_out() {
 void GameState::update_game() {
    for (auto& player : players) {
       if (player.make_next_tetromino) {
-         draw_tetromino(player);
          clear_cleared_rows();
          player.tetromino = player.next_tetromino;
          player.color = player.next_color;
@@ -232,6 +231,7 @@ void GameState::update_game() {
          if (can_move(player.tetromino, player.pos, Path::down)) {
             player.pos.y++;
          } else {
+            draw_tetromino(player);
             play_audio("place"s);
             player.make_next_tetromino = true;
          }
@@ -316,6 +316,14 @@ void GameState::render() {
       }
 
       for (const auto& player : players) {
+         for (int y = player.pos.y; y < player.pos.y + (int)player.tetromino.tiles.size() and y < grid.y; ++y) {
+            for (int x = player.pos.x; x < player.pos.x + (int)player.tetromino.tiles.size() and x < grid.x; ++x) {
+               if (player.tetromino.tiles[y - player.pos.y][x - player.pos.x]) {
+                  DrawTextureEx(tile_tx, {x * tile.x, y * tile.y}, 0.f, tile_scale, player.color);
+               }
+            }
+         }
+
          if (player.preview_y == player.pos.y) {
             continue;
          }
@@ -324,14 +332,6 @@ void GameState::render() {
             for (int x = player.pos.x; x < player.pos.x + (int)player.tetromino.tiles.size() and x < grid.x; ++x) {
                if (player.tetromino.tiles[y - player.preview_y][x - player.pos.x]) {
                   DrawRectangleLines(x * tile.x, y * tile.y, tile.x, tile.y, player.color);
-               }
-            }
-         }
-
-         for (int y = player.pos.y; y < player.pos.y + (int)player.tetromino.tiles.size() and y < grid.y; ++y) {
-            for (int x = player.pos.x; x < player.pos.x + (int)player.tetromino.tiles.size() and x < grid.x; ++x) {
-               if (player.tetromino.tiles[y - player.pos.y][x - player.pos.x]) {
-                  DrawTextureEx(tile_tx, {x * tile.x, y * tile.y}, 0.f, tile_scale, player.color);
                }
             }
          }
