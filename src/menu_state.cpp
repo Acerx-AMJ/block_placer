@@ -28,6 +28,8 @@ MenuState::MenuState() {
 
 // Update functions
 
+// Update
+
 void MenuState::update() {
    switch (phase) {
       case Phase::fading_in:  update_fading_in();  break;
@@ -35,6 +37,8 @@ void MenuState::update() {
       case Phase::fading_out: update_fading_out(); break;
    }
 }
+
+// Update fading in
 
 void MenuState::update_fading_in() {
    fade_in_timer += GetFrameTime();
@@ -45,6 +49,20 @@ void MenuState::update_fading_in() {
       screen_tint.a = 0;
    }
 }
+
+// Update fading out
+
+void MenuState::update_fading_out() {
+   fade_out_timer += GetFrameTime();
+   screen_tint.a = 255 * (fade_out_timer / fade_out_time);
+
+   if (fade_out_timer >= fade_out_time) {
+      quit = true;
+      screen_tint.a = 255;
+   }
+}
+
+// Update idle state
 
 void MenuState::update_idle_state() {
    play_button.update();
@@ -66,17 +84,9 @@ void MenuState::update_idle_state() {
    }
 }
 
-void MenuState::update_fading_out() {
-   fade_out_timer += GetFrameTime();
-   screen_tint.a = 255 * (fade_out_timer / fade_out_time);
+// Other functions
 
-   if (fade_out_timer >= fade_out_time) {
-      quit = true;
-      screen_tint.a = 255;
-   }
-}
-
-// Render functions
+// Render
 
 void MenuState::render() {
    BeginDrawing();
@@ -89,7 +99,7 @@ void MenuState::render() {
    EndDrawing();
 }
 
-// Change states function
+// Change states
 
 void MenuState::change_state(States& states) {
    if (quit_for_good) {

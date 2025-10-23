@@ -24,18 +24,18 @@ public:
    MenuState();
    ~MenuState() = default;
 
-   // Update functions
+   // Update
 
    void update() override;
    void update_fading_in();
-   void update_idle_state();
    void update_fading_out();
+   void update_idle_state();
 
-   // Render functions
+   // Render
    
    void render() override;
 
-   // Change states function
+   // Change states
 
    void change_state(States& states) override;
 };

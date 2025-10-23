@@ -5,7 +5,7 @@
 #include "audio.hpp"
 #include <algorithm>
 
-// Button functions
+// Update button
 
 void Button::update() {
    bool was_hovering = hovering;
@@ -29,6 +29,8 @@ void Button::update() {
       play_audio("click"s);
    }
 }
+
+// Render button
 
 void Button::draw() {
    float nw = rectangle.width * scale, nh = rectangle.height * scale;
