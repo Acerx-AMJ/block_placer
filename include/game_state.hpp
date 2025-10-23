@@ -5,14 +5,19 @@
 
 #include "button.hpp"
 #include "state.hpp"
+#include <unordered_map>
 #include <vector>
 
 // Structs
+
+// Tetromino
 
 struct Tetromino {
    std::vector<std::vector<bool>> tiles;
    int rotation = 0;
 };
+
+// Tile
 
 struct Tile {
    enum Type { off, on, border };
@@ -21,9 +26,13 @@ struct Tile {
    Color color;
 };
 
+// Keybinds
+
 struct Keys {
    int rotate, left, right, down, send;
 };
+
+// Player
 
 struct Player {
    std::vector<Tetromino> bag;
@@ -39,41 +48,35 @@ struct Player {
 // Game state
 
 class GameState : public State {
+   // Enums
+
    enum class Path { left, right, down, current };
    enum class Phase { fading_in, fading_out, playing, paused, lost };
 
+   // Variables
+
+   std::unordered_map<int, float> keys_down;
    std::vector<std::vector<Tile>> tiles;
    std::vector<std::vector<std::vector<Tile>>> next_tiles;
    std::vector<Player> players;
    
-   Vector2 grid;
-   Color screen_tint, lost_screen_tint;
-
    Texture tile_tx;
-   Vector2 tile;
+   Vector2 grid, tile;
+   Color screen_tint, lost_screen_tint;
    Button continue_button, restart_button, menu_button;
 
-   int game_width = 0, game_height = 0;
-   int score = 0;
-   int hi_score = 0;
-   int total_clears = 0;
-   int combo_count = -1;
-   int difficult_count = 0;
-   int level = 0;
-   int player_count = 0;
-   bool restart = false;
-   bool lost = false;
-   float down_after = 1;
-   float fade_in_timer = 0;
-   float fade_out_timer = 0;
-   float lost_timer = 0;
+   int game_width = 0, game_height = 0, score = 0, hi_score = 0, total_clears = 0, combo_count = -1, difficult_count = 0, level = 0, player_count = 0;
+   float down_after = 1, fade_in_timer = 0, fade_out_timer = 0, lost_timer = 0;
+   bool restart = false, lost = false;
    Phase phase = Phase::fading_in;
    
 public:
+   // Constructors
+
    GameState(const Vector2& grid_size, int player_count);
    ~GameState();
 
-   // Update functions
+   // Update
 
    void update() override;
    void update_fading_in();
@@ -82,40 +85,33 @@ public:
    void update_pause_screen();
    void update_lost_screen();
 
-   // Render function
+   // Render
 
    void render() override;
 
-   // Change states function
+   // Change states
 
    void change_state(States& states) override;
 
-   // Draw functions
+   // Utility
 
    void draw_tetromino(const Player& player);
    void draw_next_tetromino(const Player& player);
 
-   // Collision functions
-
    bool can_move(const Tetromino& tetromino, const Vector2& pos, Path type);
-   void rotate_wall_kicks(Player& player);
-   bool rotate(Player& player);
-
-   // Clear function
+   void rotate(Player& player);
 
    void clear_cleared_rows();
-
-   // Utility functions
-
    void add_drop_score(const Player& player, bool hard);
    void add_score(int plus);
    Tetromino get_random_tetromino(Player& player);
    Color get_random_color();
 
-   // Save/load functions
-
    void save_hi_score(int hi_score);
    int load_hi_score();
+
+   void update_key(int key);
+   bool key_down(int key);
 };
 
 #endif

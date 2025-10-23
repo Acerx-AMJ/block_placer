@@ -55,10 +55,12 @@ namespace {
    };
 
    constexpr Vector2 next_grid {6, 6};
+   constexpr int rows_for_level_up = 9;
+   constexpr float keys_down_for_press = .325f;
+   constexpr float keys_down_time = .04f;
    constexpr float tile_scale = .5f;
    constexpr float fade_in_time = .5f;
    constexpr float fade_out_time = .5f;
-   constexpr int rows_for_level_up = 9;
 }
 
 // Constructor
@@ -137,6 +139,8 @@ GameState::~GameState() {
 
 // Update functions
 
+// Update
+
 void GameState::update() {
    switch (phase) {
    case Phase::fading_in:  update_fading_in();    break;
@@ -146,6 +150,8 @@ void GameState::update() {
    case Phase::lost:       update_lost_screen();  break;
    }
 }
+
+// Update fading in
 
 void GameState::update_fading_in() {
    fade_in_timer += GetFrameTime();
@@ -158,6 +164,8 @@ void GameState::update_fading_in() {
    update_game();
 }
 
+// Update fading out
+
 void GameState::update_fading_out() {
    fade_out_timer += GetFrameTime();
    screen_tint.a = 255 * (fade_out_timer / fade_out_time);
@@ -168,8 +176,14 @@ void GameState::update_fading_out() {
    }
 }
 
+// Update game
+
 void GameState::update_game() {
    for (auto& player : players) {
+      update_key(player.key.down);
+      update_key(player.key.left);
+      update_key(player.key.right);
+
       if (player.make_next_tetromino) {
          clear_cleared_rows();
          player.tetromino = player.next_tetromino;
@@ -203,17 +217,17 @@ void GameState::update_game() {
       }
 
       if (IsKeyPressed(player.key.rotate)) {
-         rotate_wall_kicks(player);
+         rotate(player);
       }
 
-      if ((IsKeyPressed(player.key.down) or IsKeyPressedRepeat(player.key.down)) and can_move(player.tetromino, player.pos, Path::down)) {
+      if (key_down(player.key.down) and can_move(player.tetromino, player.pos, Path::down)) {
          player.pos.y++;
          player.down_timer = 0.f;
          player.soft_drop = true;
       }
 
-      player.pos.x += (IsKeyPressed(player.key.right) or IsKeyPressedRepeat(player.key.right)) and can_move(player.tetromino, player.pos, Path::right);
-      player.pos.x -= (IsKeyPressed(player.key.left) or IsKeyPressedRepeat(player.key.left)) and can_move(player.tetromino, player.pos, Path::left);
+      player.pos.x += (key_down(player.key.right) and can_move(player.tetromino, player.pos, Path::right));
+      player.pos.x -= (key_down(player.key.left) and can_move(player.tetromino, player.pos, Path::left));
 
       if (IsKeyPressed(player.key.send)) {
          while (can_move(player.tetromino, player.pos, Path::down)) {
@@ -250,6 +264,8 @@ void GameState::update_game() {
    }
 }
 
+// Update pause screen
+
 void GameState::update_pause_screen() {
    continue_button.update();
    restart_button.update();
@@ -268,6 +284,8 @@ void GameState::update_pause_screen() {
       phase = Phase::fading_out;
    }
 }
+
+// Update lost screen
 
 void GameState::update_lost_screen() {
    lost_timer += GetFrameTime();
@@ -290,7 +308,9 @@ void GameState::update_lost_screen() {
    }   
 }
 
-// Render function
+// Other functions
+
+// Render
 
 void GameState::render() {
    BeginDrawing();
@@ -324,6 +344,10 @@ void GameState::render() {
             }
          }
 
+         if (players.size() > 1) {
+            DrawText(("P"s + std::to_string(player.id + 1)).c_str(), (player.pos.x * tile.x), (player.pos.y * tile.y), 20, WHITE);
+         }
+         
          if (player.preview_y == player.pos.y) {
             continue;
          }
@@ -363,7 +387,7 @@ void GameState::render() {
    EndDrawing();
 }
 
-// Change states function
+// Change states
 
 void GameState::change_state(States& states) {
    if (restart) {
@@ -373,7 +397,9 @@ void GameState::change_state(States& states) {
    }
 }
 
-// Draw functions
+// Utility functions
+
+// Draw tetromino
 
 void GameState::draw_tetromino(const Player& player) {
    for (int y = player.pos.y; y < grid.y and y < player.pos.y + (int)player.tetromino.tiles.size(); ++y) {
@@ -385,6 +411,8 @@ void GameState::draw_tetromino(const Player& player) {
       }
    }
 }
+
+// Draw next tetromino
 
 void GameState::draw_next_tetromino(const Player& player) {
    for (int y = 1; y < next_grid.y - 1; ++y) {
@@ -405,7 +433,7 @@ void GameState::draw_next_tetromino(const Player& player) {
    }
 }
 
-// Collision functions
+// Can move tetromino
 
 bool GameState::can_move(const Tetromino& tetromino, const Vector2& pos, Path type) {
    for (int y = pos.y; y < grid.y and y < pos.y + (int)tetromino.tiles.size(); ++y) {
@@ -428,7 +456,9 @@ bool GameState::can_move(const Tetromino& tetromino, const Vector2& pos, Path ty
    return true;
 }
 
-void GameState::rotate_wall_kicks(Player& player) {
+// Rotate tetromino
+
+void GameState::rotate(Player& player) {
    if (player.tetromino.tiles.size() == 2) {
       return;
    }
@@ -439,31 +469,25 @@ void GameState::rotate_wall_kicks(Player& player) {
 
    for (const auto& offset : data) {
       player.pos = {original_pos.x + offset.x, original_pos.y + offset.y};
-      if (rotate(player)) {
+      Tetromino new_tetromino = player.tetromino;
+
+      for (int y = 0; y < player.tetromino.tiles.size(); ++y) {
+         for (int x = 0; x < player.tetromino.tiles.size(); ++x) {
+            new_tetromino.tiles[y][x] = player.tetromino.tiles[player.tetromino.tiles.size() - x - 1][y];
+         }
+      }
+
+      bool can_rotate = can_move(new_tetromino, player.pos, Path::current);
+      if (can_rotate) {
+         player.tetromino = new_tetromino;
+         player.tetromino.rotation = (player.tetromino.rotation + 1) % 4;
          return;
       }
    }
    player.pos = original_pos;
 }
 
-bool GameState::rotate(Player& player) {
-   Tetromino new_tetromino = player.tetromino;
-
-   for (int y = 0; y < player.tetromino.tiles.size(); ++y) {
-      for (int x = 0; x < player.tetromino.tiles.size(); ++x) {
-         new_tetromino.tiles[y][x] = player.tetromino.tiles[player.tetromino.tiles.size() - x - 1][y];
-      }
-   }
-
-   bool can_rotate = can_move(new_tetromino, player.pos, Path::current);
-   if (can_rotate) {
-      player.tetromino = new_tetromino;
-      player.tetromino.rotation = (player.tetromino.rotation + 1) % 4;
-   }
-   return can_rotate;
-}
-
-// Clear function
+// Clear cleared rows
 
 void GameState::clear_cleared_rows() {
    int last_difficult = difficult_count;
@@ -534,7 +558,7 @@ void GameState::clear_cleared_rows() {
    }
 }
 
-// Utility functions
+// Add drop score
 
 void GameState::add_drop_score(const Player& player, bool hard) {
    for (int y = 0; y < player.tetromino.tiles.size(); ++y) {
@@ -544,10 +568,14 @@ void GameState::add_drop_score(const Player& player, bool hard) {
    }
 }
 
+// Add score
+
 void GameState::add_score(int plus) {
    int level_multiplier = (level == 0 ? 1 : level);
    score += plus * level_multiplier * (difficult_count >= 2 ? 1.5f : 1.f);
 }
+
+// Get a random tetromino
 
 Tetromino GameState::get_random_tetromino(Player& player) {
    if (player.bag.empty()) {
@@ -563,17 +591,21 @@ Tetromino GameState::get_random_tetromino(Player& player) {
    return tetromino;
 }
 
+// Get a random color
+
 Color GameState::get_random_color() {
    return colors[rand() % colors.size()];
 }
 
-// Save/load functions
+// Save hi-score
 
 void GameState::save_hi_score(int hi_score) {
    std::ofstream file {"save.data"};
    file << hi_score;
    file.close();
 }
+
+// Load hi-score
 
 int GameState::load_hi_score() {
    std::fstream file {"save.data"};
@@ -586,4 +618,22 @@ int GameState::load_hi_score() {
    } catch (...) {
       return 0;
    }
+}
+
+// Update key
+
+void GameState::update_key(int key) {
+   if (IsKeyDown(key)) {
+      keys_down[key] += GetFrameTime();
+   } else {
+      keys_down[key] = 0;
+   }
+}
+
+bool GameState::key_down(int key) {
+   if (keys_down[key] >= keys_down_for_press) {
+      keys_down[key] -= keys_down_time;
+      return true;
+   }
+   return IsKeyPressed(key);
 }

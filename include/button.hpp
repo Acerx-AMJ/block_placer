@@ -1,8 +1,12 @@
 #ifndef BUTTON_HPP
 #define BUTTON_HPP
 
-#include "raylib.h"
+// Includes
+
+#include <raylib.h>
 #include <string>
+
+// Button class
 
 class Button {
 public:
