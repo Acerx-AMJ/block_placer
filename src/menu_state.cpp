@@ -10,7 +10,7 @@ namespace {
    constexpr float fade_in_time = 1.f;
    constexpr float fade_out_time = .5f;
    constexpr Vector2 single_mode_grid {12, 22};
-   constexpr Vector2 co_op_mode_grid {18, 22};
+   constexpr Vector2 co_op_mode_grid {18, 24};
    constexpr Vector2 screen {636, 700};
 }
 
@@ -97,8 +97,8 @@ void MenuState::change_state(States& states) {
    }
    
    if (play_co_op) {
-      states.push_back(std::make_unique<GameState>(co_op_mode_grid));
+      states.push_back(std::make_unique<GameState>(co_op_mode_grid, 2));
    } else {
-      states.push_back(std::make_unique<GameState>(single_mode_grid));
+      states.push_back(std::make_unique<GameState>(single_mode_grid, 1));
    }
 }
