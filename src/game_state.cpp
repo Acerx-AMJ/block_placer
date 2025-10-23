@@ -2,6 +2,7 @@
 
 // Includes
 
+#include "audio.hpp"
 #include "menu_state.hpp"
 #include <algorithm>
 #include <fstream>
@@ -126,22 +127,12 @@ GameState::GameState(const Vector2& grid, int player_count)
    restart_button.text = "RESTART";
    continue_button.text = "CONTINUE";
    menu_button.text = "MENU";
-
-   btb_sound = LoadSound("assets/back_to_back.wav");
-   combo_sound = LoadSound("assets/combo.wav");
-   lost_sound = LoadSound("assets/lost.wav");
-   place_sound = LoadSound("assets/place.wav");
 }
 
 GameState::~GameState() {
    if (score >= hi_score) {
       save_hi_score(score);
    }
-   UnloadTexture(tile_tx);
-   UnloadSound(btb_sound);
-   UnloadSound(combo_sound);
-   UnloadSound(lost_sound);
-   UnloadSound(place_sound);
 }
 
 // Update functions
@@ -199,7 +190,7 @@ void GameState::update_game() {
 
          if (not can_move(player.tetromino, player.pos, Path::current)) {
             lost = true;
-            PlaySound(lost_sound);
+            play_audio("lost"s);
             phase = Phase::lost;
 
             for (auto& p : players) {
@@ -241,7 +232,7 @@ void GameState::update_game() {
          if (can_move(player.tetromino, player.pos, Path::down)) {
             player.pos.y++;
          } else {
-            PlaySound(place_sound);
+            play_audio("place"s);
             player.make_next_tetromino = true;
          }
       }
@@ -520,10 +511,7 @@ void GameState::clear_cleared_rows() {
    } else {
       combo_count++;
       add_score(50 * combo_count);
-
-      if (combo_count > 0) {
-         PlaySound(combo_sound);
-      }
+      play_audio("combo"s);
    }
 
    if (cleared.size() == 1) {
@@ -542,7 +530,7 @@ void GameState::clear_cleared_rows() {
    }
 
    if (difficult_count >= 2 and last_difficult != difficult_count) {
-      PlaySound(btb_sound);
+      play_audio("back_to_back"s);
    }
 }
 

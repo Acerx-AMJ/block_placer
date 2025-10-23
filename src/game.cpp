@@ -2,6 +2,7 @@
 
 // Includes
 
+#include "audio.hpp"
 #include "menu_state.hpp"
 #include <raylib.h>
 #include <cstdlib>
@@ -25,15 +26,15 @@ Game::Game() {
 
    auto icon = LoadImage("assets/icon.png");
    SetWindowIcon(icon);
-   load_button_sounds();
+   load_audio();
 
    states.push_back(std::make_unique<MenuState>());
 }
 
 Game::~Game() {
+   unload_audio();
    CloseWindow();
    CloseAudioDevice();
-   unload_button_sounds();
 }
 
 // Run function

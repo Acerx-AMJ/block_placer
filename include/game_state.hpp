@@ -52,7 +52,6 @@ class GameState : public State {
    Texture tile_tx;
    Vector2 tile;
    Button continue_button, restart_button, menu_button;
-   Sound btb_sound, combo_sound, lost_sound, place_sound;
 
    int game_width = 0, game_height = 0;
    int score = 0;
