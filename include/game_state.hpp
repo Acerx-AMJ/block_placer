@@ -11,7 +11,6 @@
 
 struct Tetromino {
    std::vector<std::vector<bool>> tiles;
-   bool is_t = false;
    int rotation = 0;
 };
 
@@ -22,6 +21,21 @@ struct Tile {
    Color color;
 };
 
+struct Keys {
+   int rotate, left, right, down, send;
+};
+
+struct Player {
+   std::vector<Tetromino> bag;
+   Tetromino tetromino, next_tetromino;
+   Keys key;
+   Color color, next_color;
+   Vector2 pos, starting_pos;
+   int preview_y = 0, id = 0;
+   bool make_next_tetromino = false, soft_drop = false, hard_drop = false;
+   float down_timer = 0;
+};
+
 // Game state
 
 class GameState : public State {
@@ -29,36 +43,27 @@ class GameState : public State {
    enum class Phase { fading_in, fading_out, playing, paused, lost };
 
    std::vector<std::vector<Tile>> tiles;
-   std::vector<std::vector<Tile>> next_tiles;
-   std::vector<Tetromino> bag;
-
-   Tetromino tetromino;
-   Tetromino next_tetromino;
-   Color color;
-   Color next_color;
-   Vector2 pos, grid;
-   Color screen_tint, lost_color;
+   std::vector<std::vector<std::vector<Tile>>> next_tiles;
+   std::vector<Player> players;
+   
+   Vector2 grid;
+   Color screen_tint, lost_screen_tint;
 
    Texture tile_tx;
    Vector2 tile;
    Button continue_button, restart_button, menu_button;
    Sound btb_sound, combo_sound, lost_sound, place_sound;
 
-   Vector3 tspin_info = {0, 0, 0};
-   int game_width = 0;
-   int preview_y = 0;
+   int game_width = 0, game_height = 0;
    int score = 0;
    int hi_score = 0;
    int total_clears = 0;
    int combo_count = -1;
    int difficult_count = 0;
    int level = 0;
-   bool make_next_tetromino = false;
-   bool soft_drop = false;
-   bool hard_drop = false;
+   int player_count = 0;
    bool restart = false;
    bool lost = false;
-   float down_timer = 0;
    float down_after = 1;
    float fade_in_timer = 0;
    float fade_out_timer = 0;
@@ -66,7 +71,7 @@ class GameState : public State {
    Phase phase = Phase::fading_in;
    
 public:
-   GameState(const Vector2& grid_size);
+   GameState(const Vector2& grid_size, int player_count);
    ~GameState();
 
    // Update functions
@@ -88,15 +93,14 @@ public:
 
    // Draw functions
 
-   void clear_tetromino();
-   void draw_tetromino();
-   void draw_next_tetromino();
+   void draw_tetromino(const Player& player);
+   void draw_next_tetromino(const Player& player);
 
    // Collision functions
 
-   bool can_move(Tetromino& tetromino, Path type);
-   void rotate_wall_kicks(bool right);
-   bool rotate(bool right);
+   bool can_move(const Tetromino& tetromino, const Vector2& pos, Path type);
+   void rotate_wall_kicks(Player& player);
+   bool rotate(Player& player);
 
    // Clear function
 
@@ -104,9 +108,9 @@ public:
 
    // Utility functions
 
-   void add_drop_score(bool hard);
+   void add_drop_score(const Player& player, bool hard);
    void add_score(int plus);
-   Tetromino get_random_tetromino();
+   Tetromino get_random_tetromino(Player& player);
    Color get_random_color();
 
    // Save/load functions

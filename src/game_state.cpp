@@ -22,30 +22,22 @@ namespace {
       {{{1, 0, 0}, {1, 1, 1}, {0, 0, 0}}},
       {{{0, 1, 1}, {1, 1, 0}, {0, 0, 0}}},
       {{{1, 1, 0}, {0, 1, 1}, {0, 0, 0}}},
-      {{{0, 1, 0}, {1, 1, 1}, {0, 0, 0}}, true},
+      {{{0, 1, 0}, {1, 1, 1}, {0, 0, 0}}},
       {{{0, 0, 0, 0}, {1, 1, 1, 1}, {0, 0, 0, 0}, {0, 0, 0, 0}}},
    };
 
    static const std::unordered_map<int, std::vector<Vector2>> wall_kick_data_jlstz {
       {0, {{0, 0}, {-1, 0}, {-1, -1}, {-1, +2}, {0, -2}}},
-      {4, {{0, 0}, {+1, 0}, {+1, +1}, {+1, +2}, {0, -2}}},
       {1, {{0, 0}, {+1, 0}, {+1, +1}, {+1, +2}, {0, -2}}},
-      {5, {{0, 0}, {-1, 0}, {-1, -1}, {-1, +2}, {0, -2}}},
       {2, {{0, 0}, {+1, 0}, {+1, -1}, {+1, +2}, {0, -2}}},
-      {6, {{0, 0}, {-1, 0}, {-1, +1}, {-1, +2}, {0, -2}}},
       {3, {{0, 0}, {-1, 0}, {-1, +1}, {-1, +2}, {0, -2}}},
-      {7, {{0, 0}, {+1, 0}, {+1, -1}, {+1, +2}, {0, -2}}},
    };
 
    static const std::unordered_map<int, std::vector<Vector2>> wall_kick_data_i {
       {0, {{0, 0}, {-2, 0}, {+1, 0}, {-2, +1}, {+1, -2}}},
-      {4, {{0, 0}, {+2, 0}, {-1, 0}, {+2, -1}, {-1, +2}}},
       {1, {{0, 0}, {-1, 0}, {+2, 0}, {-1, -2}, {+2, +1}}},
-      {5, {{0, 0}, {+1, 0}, {-2, 0}, {+1, +2}, {-2, -1}}},
       {2, {{0, 0}, {+2, 0}, {-1, 0}, {+2, -1}, {-1, +2}}},
-      {6, {{0, 0}, {-2, 0}, {+1, 0}, {-2, +1}, {+1, -2}}},
       {3, {{0, 0}, {+1, 0}, {-2, 0}, {+1, +2}, {-2, -1}}},
-      {7, {{0, 0}, {-1, 0}, {+2, 0}, {-1, -2}, {+2, +1}}},
    };
 
    static const std::vector<Color> colors {
@@ -54,6 +46,11 @@ namespace {
 
    static const std::vector<float> level_speeds {
       1.1f, 1.05f, 1.f, .95f, .9f, .85f, .8f, .7f, .6f, .5f, .4f, .35f, .3f, .25f, .2f, .175f
+   };
+
+   static const std::vector<Keys> keybinds {
+      {KEY_W, KEY_A, KEY_D, KEY_S, KEY_SPACE},
+      {KEY_UP, KEY_LEFT, KEY_RIGHT, KEY_DOWN, KEY_ENTER}
    };
 
    constexpr Vector2 next_grid {6, 6};
@@ -65,8 +62,8 @@ namespace {
 
 // Constructor
 
-GameState::GameState(const Vector2& grid)
-   : grid(grid) {
+GameState::GameState(const Vector2& grid, int player_count)
+   : grid(grid), player_count(player_count) {
    tile_tx = LoadTexture("assets/tile.png");
    tile = {tile_tx.width * tile_scale, tile_tx.height * tile_scale};
 
@@ -83,31 +80,44 @@ GameState::GameState(const Vector2& grid)
       tiles.push_back(row);
    }
 
-   for (int y = 0; y < next_grid.y; ++y) {
-      std::vector<Tile> row;
-      for (int x = 0; x < next_grid.x; ++x) {
-         if (y == 0 or y == next_grid.y - 1 or x == 0 or x == next_grid.x - 1) {
-            Tile tile {Tile::border, GRAY};
-            row.push_back(tile);
-         } else {
-            row.push_back({});
+   for (int i = 0; i < player_count; ++i) {
+      std::vector<std::vector<Tile>> grid;
+      for (int y = 0; y < next_grid.y; ++y) {
+         std::vector<Tile> row;
+         for (int x = 0; x < next_grid.x; ++x) {
+            if (y == 0 or y == next_grid.y - 1 or x == 0 or x == next_grid.x - 1) {
+               Tile tile {Tile::border, GRAY};
+               row.push_back(tile);
+            } else {
+               row.push_back({});
+            }
          }
+         grid.push_back(row);
       }
-      next_tiles.push_back(row);
+      next_tiles.push_back(grid);
    }
-   tetromino = get_random_tetromino();
-   color = get_random_color();
-   next_tetromino = get_random_tetromino();
-   next_color = get_random_color();
-   draw_next_tetromino();
+
+   for (int i = 0; i < player_count; ++i) {
+      Player player;
+      player.id = i;
+      player.tetromino = get_random_tetromino(player);
+      player.color = get_random_color();
+      player.next_tetromino = get_random_tetromino(player);
+      player.next_color = get_random_color();
+      draw_next_tetromino(player);
+
+      player.starting_pos = player.pos = {(float)int((grid.x - 2) / (player_count + 1) * (i + 1)), 1};
+      player.key = keybinds[i];
+      players.push_back(player);
+   }
 
    hi_score = load_hi_score();
-   pos = {(grid.x - 2) / 2, 1};
    screen_tint = BLACK;
-   lost_color = {0, 0, 0, 0};
+   lost_screen_tint = {0, 0, 0, 0};
 
-   SetWindowSize(tile.x * (grid.x + 8), GetScreenHeight());
+   game_height = next_tiles.size() * (next_grid.y + 2);
    game_width = tile.x * (grid.x + 1);
+   SetWindowSize(tile.x * (grid.x + 8), std::max(tile.y * grid.y, (game_height + 8) * tile.y));
 
    restart_button.rectangle = {GetScreenWidth() / 2.f, GetScreenHeight() / 2.f, 175.f, 50.f};
    continue_button.rectangle = {restart_button.rectangle.x - 185.f, restart_button.rectangle.y, 175.f, 50.f};
@@ -121,7 +131,6 @@ GameState::GameState(const Vector2& grid)
    combo_sound = LoadSound("assets/combo.wav");
    lost_sound = LoadSound("assets/lost.wav");
    place_sound = LoadSound("assets/place.wav");
-
 }
 
 GameState::~GameState() {
@@ -169,76 +178,81 @@ void GameState::update_fading_out() {
 }
 
 void GameState::update_game() {
-   if (make_next_tetromino) {
-      clear_cleared_rows();
-      tetromino = next_tetromino;
-      color = next_color;
-      next_tetromino = get_random_tetromino();
-      next_color = get_random_color();
-      draw_next_tetromino();
+   for (auto& player : players) {
+      if (player.make_next_tetromino) {
+         draw_tetromino(player);
+         clear_cleared_rows();
+         player.tetromino = player.next_tetromino;
+         player.color = player.next_color;
+         player.next_tetromino = get_random_tetromino(player);
+         player.next_color = get_random_color();
+         draw_next_tetromino(player);
 
-      pos = {(grid.x - 2) / 2, 1};
-      make_next_tetromino = false;
-      down_timer = 0.f;
+         player.pos = player.starting_pos;
+         player.make_next_tetromino = false;
+         player.down_timer = 0.f;
 
-      if (soft_drop or hard_drop) {
-         add_drop_score(hard_drop);
+         if (player.soft_drop or player.hard_drop) {
+            add_drop_score(player, player.hard_drop);
+         }
+         player.soft_drop = player.hard_drop = false;
+
+         if (not can_move(player.tetromino, player.pos, Path::current)) {
+            lost = true;
+            PlaySound(lost_sound);
+            phase = Phase::lost;
+
+            for (auto& p : players) {
+               p.preview_y = p.pos.y;
+            }
+
+            restart_button.rectangle.x = GetScreenWidth() / 2.f - 92.5f;
+            menu_button.rectangle.x = GetScreenWidth() / 2.f + 92.5f;
+            return;
+         }
       }
-      soft_drop = hard_drop = false;
 
-      if (not can_move(tetromino, Path::current)) {
-         lost = true;
-         PlaySound(lost_sound);
-         preview_y = pos.y;
-         phase = Phase::lost;
-
-         restart_button.rectangle.x = GetScreenWidth() / 2.f - 92.5f;
-         menu_button.rectangle.x = GetScreenWidth() / 2.f + 92.5f;
-         return;
+      if (IsKeyPressed(player.key.rotate)) {
+         rotate_wall_kicks(player);
       }
-   }
 
-   clear_tetromino();
-   if (IsKeyPressed(KEY_Q) or IsKeyPressed(KEY_E) or IsKeyPressed(KEY_W) or IsKeyPressed(KEY_UP)) {
-      rotate_wall_kicks(not IsKeyPressed(KEY_Q));
-   }
-
-   if ((IsKeyPressed(KEY_S) or IsKeyPressedRepeat(KEY_S) or IsKeyPressed(KEY_DOWN) or IsKeyPressedRepeat(KEY_DOWN)) and can_move(tetromino, Path::down)) {
-      pos.y++;
-      down_timer = 0.f;
-      soft_drop = true;
-   }
-
-   pos.x += (IsKeyPressed(KEY_D) or IsKeyPressedRepeat(KEY_D) or IsKeyPressed(KEY_RIGHT) or IsKeyPressedRepeat(KEY_RIGHT)) and can_move(tetromino, Path::right);
-   pos.x -= (IsKeyPressed(KEY_A) or IsKeyPressedRepeat(KEY_A) or IsKeyPressed(KEY_LEFT) or IsKeyPressedRepeat(KEY_LEFT)) and can_move(tetromino, Path::left);
-
-   if (IsKeyPressed(KEY_SPACE)) {
-      while (can_move(tetromino, Path::down)) {
-         pos.y++;
+      if ((IsKeyPressed(player.key.down) or IsKeyPressedRepeat(player.key.down)) and can_move(player.tetromino, player.pos, Path::down)) {
+         player.pos.y++;
+         player.down_timer = 0.f;
+         player.soft_drop = true;
       }
-      down_timer = down_after;
-      hard_drop = true;
-   }
 
-   down_timer += GetFrameTime();
-   if (down_timer >= down_after) {
-      down_timer -= down_after;
+      player.pos.x += (IsKeyPressed(player.key.right) or IsKeyPressedRepeat(player.key.right)) and can_move(player.tetromino, player.pos, Path::right);
+      player.pos.x -= (IsKeyPressed(player.key.left) or IsKeyPressedRepeat(player.key.left)) and can_move(player.tetromino, player.pos, Path::left);
 
-      if (can_move(tetromino, Path::down)) {
-         pos.y++;
-      } else {
-         PlaySound(place_sound);
-         make_next_tetromino = true;
+      if (IsKeyPressed(player.key.send)) {
+         while (can_move(player.tetromino, player.pos, Path::down)) {
+            player.pos.y++;
+         }
+         player.down_timer = down_after;
+         player.hard_drop = true;
       }
-   }
-   int original = pos.y;
-   preview_y = pos.y;
 
-   while (can_move(tetromino, Path::down)) {
-      pos.y = preview_y = pos.y + 1;
+      player.down_timer += GetFrameTime();
+
+      if (player.down_timer >= down_after) {
+         player.down_timer -= down_after;
+
+         if (can_move(player.tetromino, player.pos, Path::down)) {
+            player.pos.y++;
+         } else {
+            PlaySound(place_sound);
+            player.make_next_tetromino = true;
+         }
+      }
+      int original = player.pos.y;
+      player.preview_y = player.pos.y;
+
+      while (can_move(player.tetromino, player.pos, Path::down)) {
+         player.pos.y = player.preview_y = player.pos.y + 1;
+      }
+      player.pos.y = original;
    }
-   pos.y = original;
-   draw_tetromino();
 
    if (IsKeyPressed(KEY_ESCAPE) and phase == Phase::playing) {
       phase = Phase::paused;
@@ -266,10 +280,10 @@ void GameState::update_pause_screen() {
 
 void GameState::update_lost_screen() {
    lost_timer += GetFrameTime();
-   lost_color.a = 255 * lost_timer;
+   lost_screen_tint.a = 255 * lost_timer;
 
    if (lost_timer >= 1.f) {
-      lost_color.a = 255;   
+      lost_screen_tint.a = 255;   
    }
    
    restart_button.update();
@@ -299,29 +313,43 @@ void GameState::render() {
          }
       }
 
-      for (int y = 0; y < next_grid.y; ++y) {
-         for (int x = 0; x < next_grid.x; ++x) {
-            if (next_tiles[y][x].type) {
-               DrawTextureEx(tile_tx, {(x + grid.x + 1) * tile.x, (y + 2) * tile.y}, 0.f, tile_scale, next_tiles[y][x].color);
-            }
-         }
-      }
-
-      if (preview_y != pos.y) {
-         for (int y = preview_y; y < preview_y + (int)tetromino.tiles.size() and y < grid.y; ++y) {
-            for (int x = pos.x; x < pos.x + (int)tetromino.tiles.size() and x < grid.x; ++x) {
-               if (tetromino.tiles[y - preview_y][x - pos.x]) {
-                  DrawRectangleLines(x * tile.x, y * tile.y, tile.x, tile.y, color);
+      for (int i = 0; i < next_tiles.size(); ++i) {
+         DrawText(("NEXT P"s + std::to_string(i + 1) + ": "s).c_str(), game_width, ((next_grid.y + 2) * i + 1) * tile.y, 20, WHITE);
+         for (int y = 0; y < next_grid.y; ++y) {
+            for (int x = 0; x < next_grid.x; ++x) {
+               if (next_tiles[i][y][x].type) {
+                  DrawTextureEx(tile_tx, {(x + grid.x + 1) * tile.x, (next_grid.y + 2) * i * tile.y + (y + 2) * tile.y}, 0.f, tile_scale, next_tiles[i][y][x].color);
                }
             }
          }
       }
 
-      DrawText("NEXT:", game_width, tile.y, 20, WHITE);
-      DrawText(("SCORE: "s + std::to_string(score)).c_str(), game_width, 9 * tile.y, 20, WHITE);
-      DrawText(("HI-SCORE: "s + std::to_string(hi_score)).c_str(), game_width, 11 * tile.y, 20, WHITE);
-      DrawText(("LEVEL: "s + std::to_string(level)).c_str(), game_width, 13 * tile.y, 20, WHITE);
-      DrawText(("COMBO: "s + std::to_string((combo_count == -1 ? 0 : combo_count))).c_str(), game_width, 15 * tile.y, 20, WHITE);
+      for (const auto& player : players) {
+         if (player.preview_y == player.pos.y) {
+            continue;
+         }
+
+         for (int y = player.preview_y; y < player.preview_y + (int)player.tetromino.tiles.size() and y < grid.y; ++y) {
+            for (int x = player.pos.x; x < player.pos.x + (int)player.tetromino.tiles.size() and x < grid.x; ++x) {
+               if (player.tetromino.tiles[y - player.preview_y][x - player.pos.x]) {
+                  DrawRectangleLines(x * tile.x, y * tile.y, tile.x, tile.y, player.color);
+               }
+            }
+         }
+
+         for (int y = player.pos.y; y < player.pos.y + (int)player.tetromino.tiles.size() and y < grid.y; ++y) {
+            for (int x = player.pos.x; x < player.pos.x + (int)player.tetromino.tiles.size() and x < grid.x; ++x) {
+               if (player.tetromino.tiles[y - player.pos.y][x - player.pos.x]) {
+                  DrawTextureEx(tile_tx, {x * tile.x, y * tile.y}, 0.f, tile_scale, player.color);
+               }
+            }
+         }
+      }
+
+      DrawText(("SCORE: "s + std::to_string(score)).c_str(), game_width, (game_height + 1) * tile.y, 20, WHITE);
+      DrawText(("HI-SCORE: "s + std::to_string(hi_score)).c_str(), game_width, (game_height + 3) * tile.y, 20, WHITE);
+      DrawText(("LEVEL: "s + std::to_string(level)).c_str(), game_width, (game_height + 5) * tile.y, 20, WHITE);
+      DrawText(("COMBO: "s + std::to_string((combo_count == -1 ? 0 : combo_count))).c_str(), game_width, (game_height + 7) * tile.y, 20, WHITE);
 
       if (phase == Phase::paused) {
          DrawText("PAUSED", GetScreenWidth() / 2.f - MeasureText("PAUSED", 60) / 2.f, GetScreenHeight() / 3.f, 60, WHITE);
@@ -329,7 +357,7 @@ void GameState::render() {
          restart_button.draw();
          menu_button.draw();
       } else if (lost) {
-         DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), lost_color);
+         DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), lost_screen_tint);
 
          std::string final_score = "SCORE: "s + std::to_string(score);
          std::string best_score = "HI-SCORE: "s + std::to_string(hi_score);
@@ -348,7 +376,7 @@ void GameState::render() {
 
 void GameState::change_state(States& states) {
    if (restart) {
-      states.push_back(std::make_unique<GameState>(grid));
+      states.push_back(std::make_unique<GameState>(grid, player_count));
    } else {
       states.push_back(std::make_unique<MenuState>());
    }
@@ -356,41 +384,31 @@ void GameState::change_state(States& states) {
 
 // Draw functions
 
-void GameState::clear_tetromino() {
-   for (int y = pos.y; y < grid.y and y < pos.y + (int)tetromino.tiles.size(); ++y) {
-      for (int x = pos.x; x < grid.x and x < pos.x + (int)tetromino.tiles.size(); ++x) {
-         if (tetromino.tiles[y - pos.y][x - pos.x] and tiles[y][x].type != Tile::border) {
-            tiles[y][x].type = Tile::off;
-         }
-      }
-   }
-}
-
-void GameState::draw_tetromino() {
-   for (int y = pos.y; y < grid.y and y < pos.y + (int)tetromino.tiles.size(); ++y) {
-      for (int x = pos.x; x < grid.x and x < pos.x + (int)tetromino.tiles.size(); ++x) {
-         if (tetromino.tiles[y - pos.y][x - pos.x] and tiles[y][x].type != Tile::border) {
+void GameState::draw_tetromino(const Player& player) {
+   for (int y = player.pos.y; y < grid.y and y < player.pos.y + (int)player.tetromino.tiles.size(); ++y) {
+      for (int x = player.pos.x; x < grid.x and x < player.pos.x + (int)player.tetromino.tiles.size(); ++x) {
+         if (player.tetromino.tiles[y - player.pos.y][x - player.pos.x] and tiles[y][x].type != Tile::border) {
             tiles[y][x].type = Tile::on;
-            tiles[y][x].color = color;
+            tiles[y][x].color = player.color;
          }
       }
    }
 }
 
-void GameState::draw_next_tetromino() {
+void GameState::draw_next_tetromino(const Player& player) {
    for (int y = 1; y < next_grid.y - 1; ++y) {
       for (int x = 1; x < next_grid.x - 1; ++x) {
-         next_tiles[y][x].type = Tile::off;
+         next_tiles[player.id][y][x].type = Tile::off;
       }
    }
-   int ox = 1 + (next_tetromino.tiles.size() != 4);
-   int oy = 1 + (next_tetromino.tiles.size() == 2);
+   int ox = 1 + (player.next_tetromino.tiles.size() != 4);
+   int oy = 1 + (player.next_tetromino.tiles.size() == 2);
 
-   for (int y = oy; y < next_tetromino.tiles.size() + oy; ++y) {
-      for (int x = ox; x < next_tetromino.tiles.size() + ox; ++x) {
-         if (next_tetromino.tiles[y - oy][x - ox]) {
-            next_tiles[y][x].type = Tile::on;
-            next_tiles[y][x].color = next_color;
+   for (int y = oy; y < player.next_tetromino.tiles.size() + oy; ++y) {
+      for (int x = ox; x < player.next_tetromino.tiles.size() + ox; ++x) {
+         if (player.next_tetromino.tiles[y - oy][x - ox]) {
+            next_tiles[player.id][y][x].type = Tile::on;
+            next_tiles[player.id][y][x].color = player.next_color;
          }
       }
    }
@@ -398,7 +416,7 @@ void GameState::draw_next_tetromino() {
 
 // Collision functions
 
-bool GameState::can_move(Tetromino& tetromino, Path type) {
+bool GameState::can_move(const Tetromino& tetromino, const Vector2& pos, Path type) {
    for (int y = pos.y; y < grid.y and y < pos.y + (int)tetromino.tiles.size(); ++y) {
       for (int x = pos.x; x < grid.x and x < pos.x + (int)tetromino.tiles.size(); ++x) {
          if (not tetromino.tiles[y - pos.y][x - pos.x]) {
@@ -419,42 +437,37 @@ bool GameState::can_move(Tetromino& tetromino, Path type) {
    return true;
 }
 
-void GameState::rotate_wall_kicks(bool right) {
-   if (tetromino.tiles.size() == 2) {
-      rotate(right);
+void GameState::rotate_wall_kicks(Player& player) {
+   if (player.tetromino.tiles.size() == 2) {
       return;
    }
-   int rotation = tetromino.rotation + (not right) * 4;
-   Vector2 original_pos = pos;
-   const auto& data = (tetromino.tiles.size() == 3 ? wall_kick_data_jlstz.at(rotation) : wall_kick_data_i.at(rotation)); 
+
+   int rotation = player.tetromino.rotation;
+   Vector2 original_pos = player.pos;
+   const auto& data = (player.tetromino.tiles.size() == 3 ? wall_kick_data_jlstz.at(rotation) : wall_kick_data_i.at(rotation)); 
 
    for (const auto& offset : data) {
-      pos = {original_pos.x + offset.x, original_pos.y + offset.y};
-      if (rotate(right)) {
-         tspin_info = {pos.y, offset.x, offset.y};
+      player.pos = {original_pos.x + offset.x, original_pos.y + offset.y};
+      if (rotate(player)) {
          return;
       }
    }
-   pos = original_pos;
+   player.pos = original_pos;
 }
 
-bool GameState::rotate(bool right) {
-   Tetromino new_tetromino = tetromino;
+bool GameState::rotate(Player& player) {
+   Tetromino new_tetromino = player.tetromino;
 
-   for (int y = 0; y < tetromino.tiles.size(); ++y) {
-      for (int x = 0; x < tetromino.tiles.size(); ++x) {
-         if (right) {
-            new_tetromino.tiles[y][x] = tetromino.tiles[tetromino.tiles.size() - x - 1][y];
-         } else {
-            new_tetromino.tiles[tetromino.tiles.size() - x - 1][y] = tetromino.tiles[y][x];
-         }
+   for (int y = 0; y < player.tetromino.tiles.size(); ++y) {
+      for (int x = 0; x < player.tetromino.tiles.size(); ++x) {
+         new_tetromino.tiles[y][x] = player.tetromino.tiles[player.tetromino.tiles.size() - x - 1][y];
       }
    }
 
-   bool can_rotate = can_move(new_tetromino, Path::current);
+   bool can_rotate = can_move(new_tetromino, player.pos, Path::current);
    if (can_rotate) {
-      tetromino = new_tetromino;
-      tetromino.rotation = (tetromino.rotation + 1) % 4;
+      player.tetromino = new_tetromino;
+      player.tetromino.rotation = (player.tetromino.rotation + 1) % 4;
    }
    return can_rotate;
 }
@@ -502,45 +515,6 @@ void GameState::clear_cleared_rows() {
       }
    }
 
-   bool tspinned = false;
-   if (tetromino.is_t and tspin_info.x == pos.y) {
-      int front_count = 0;
-      int back_count = 0;
-      
-      if (not tetromino.tiles[0][1]) {
-         front_count += (bool)tiles[pos.y + 2][pos.x].type + (bool)tiles[pos.y + 2][pos.x + 2].type;
-         back_count += (bool)tiles[pos.y][pos.x].type + (bool)tiles[pos.y][pos.x + 2].type;
-      } else if (not tetromino.tiles[1][2]) {
-         front_count += (bool)tiles[pos.y][pos.x].type + (bool)tiles[pos.y + 2][pos.x].type;
-         back_count += (bool)tiles[pos.y][pos.x + 2].type + (bool)tiles[pos.y + 2][pos.x + 2].type;
-      } else if (not tetromino.tiles[1][0]) {
-         front_count += (bool)tiles[pos.y][pos.x + 2].type + (bool)tiles[pos.y + 2][pos.x + 2].type;
-         back_count += (bool)tiles[pos.y][pos.x].type + (bool)tiles[pos.y + 2][pos.x].type;
-      } else if (not tetromino.tiles[2][1]) {
-         front_count += (bool)tiles[pos.y][pos.x].type + (bool)tiles[pos.y][pos.x + 2].type;
-         back_count += (bool)tiles[pos.y + 2][pos.x].type + (bool)tiles[pos.y + 2][pos.x + 2].type;
-      }
-      int multiplier = 1;
-
-      if ((front_count == 2 and back_count >= 1) or (tspin_info.y == 1 and tspin_info.z == 2)) {
-         tspinned = true;
-         multiplier = 4;
-      } else if (front_count >= 1 and back_count == 2) {
-         tspinned = true;
-      }
-
-      if (tspinned and cleared.empty()) {
-         add_score(100 * multiplier);
-      } else if (tspinned and cleared.size() == 1) {
-         add_score(200 * multiplier);
-         difficult_count++;
-      } else if (tspinned and cleared.size() == 2) {
-         add_score(400 * multiplier);
-         difficult_count++;
-      }
-   }
-   tspin_info = {0, 0, 0};
-
    if (cleared.empty()) {
       combo_count = -1;
    } else {
@@ -563,7 +537,7 @@ void GameState::clear_cleared_rows() {
       difficult_count++;
    }
 
-   if (cleared.size() != 4 and not tspinned and not cleared.empty()) {
+   if (cleared.size() != 4 and not cleared.empty()) {
       difficult_count = 0;
    }
 
@@ -574,10 +548,10 @@ void GameState::clear_cleared_rows() {
 
 // Utility functions
 
-void GameState::add_drop_score(bool hard) {
-   for (int y = 0; y < tetromino.tiles.size(); ++y) {
-      for (int x = 0; x < tetromino.tiles.size(); ++x) {
-         score += tetromino.tiles[y][x] * (hard + 1);
+void GameState::add_drop_score(const Player& player, bool hard) {
+   for (int y = 0; y < player.tetromino.tiles.size(); ++y) {
+      for (int x = 0; x < player.tetromino.tiles.size(); ++x) {
+         score += player.tetromino.tiles[y][x] * (hard + 1);
       }
    }
 }
@@ -587,17 +561,17 @@ void GameState::add_score(int plus) {
    score += plus * level_multiplier * (difficult_count >= 2 ? 1.5f : 1.f);
 }
 
-Tetromino GameState::get_random_tetromino() {
-   if (bag.empty()) {
+Tetromino GameState::get_random_tetromino(Player& player) {
+   if (player.bag.empty()) {
       for (const auto& tetromino : tetrominoes) {
-         bag.push_back(tetromino);
+         player.bag.push_back(tetromino);
       }
       std::random_device rd;
       std::mt19937 device(rd());
-      std::shuffle(bag.begin(), bag.end(), device);
+      std::shuffle(player.bag.begin(), player.bag.end(), device);
    }
-   auto tetromino = bag.back();
-   bag.pop_back();
+   auto tetromino = player.bag.back();
+   player.bag.pop_back();
    return tetromino;
 }
 
