@@ -20,9 +20,11 @@ MenuState::MenuState() {
    SetWindowSize(screen.x, screen.y);
    play_button.rectangle = {GetScreenWidth() / 2.f, 250.f, 175.f, 50.f};
    co_op_button.rectangle = {play_button.rectangle.x, play_button.rectangle.y + 75.f, 175.f, 50.f};
-   quit_button.rectangle = {co_op_button.rectangle.x, co_op_button.rectangle.y + 75.f, 175.f, 50.f};
+   versus_button.rectangle = {co_op_button.rectangle.x, co_op_button.rectangle.y + 75.f, 175.f, 50.f};
+   quit_button.rectangle = {versus_button.rectangle.x, versus_button.rectangle.y + 75.f, 175.f, 50.f};
    play_button.text = "PLAY";
    co_op_button.text = "CO-OP";
+   versus_button.text = "VERSUS";
    quit_button.text = "QUIT";
 }
 
@@ -67,6 +69,7 @@ void MenuState::update_fading_out() {
 void MenuState::update_idle_state() {
    play_button.update();
    co_op_button.update();
+   versus_button.update();
    quit_button.update();
 
    if (play_button.clicked) {
@@ -76,6 +79,11 @@ void MenuState::update_idle_state() {
    if (co_op_button.clicked) {
       phase = Phase::fading_out;
       play_co_op = true;
+   }
+
+   if (versus_button.clicked) {
+      phase = Phase::fading_out;
+      play_versus = true;
    }
 
    if (quit_button.clicked) {
@@ -93,6 +101,7 @@ void MenuState::render() {
       ClearBackground(BLACK);
       play_button.draw();
       co_op_button.draw();
+      versus_button.draw();
       quit_button.draw();
       DrawText("BLOCK PLACER", GetScreenWidth() / 2.f - MeasureText("BLOCK PLACER", 60) / 2.f, 150.f, 60, WHITE);
       DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), screen_tint);
@@ -107,8 +116,10 @@ void MenuState::change_state(States& states) {
    }
    
    if (play_co_op) {
-      states.push_back(std::make_unique<GameState>(co_op_mode_grid, 2));
+      states.push_back(std::make_unique<GameState>(co_op_mode_grid, 2, false));
+   } else if (play_versus) {
+      states.push_back(std::make_unique<GameState>(single_mode_grid, 1, true));
    } else {
-      states.push_back(std::make_unique<GameState>(single_mode_grid, 1));
+      states.push_back(std::make_unique<GameState>(single_mode_grid, 1, false));
    }
 }
