@@ -120,7 +120,7 @@ GameState::GameState(const Vector2& grid, int player_count)
 
    game_height = next_tiles.size() * (next_grid.y + 2);
    game_width = tile.x * (grid.x + 1);
-   SetWindowSize(tile.x * (grid.x + 8), std::max(tile.y * grid.y, (game_height + 8) * tile.y));
+   SetWindowSize(tile.x * (grid.x + 8), std::max(tile.y * grid.y, (game_height + 6) * tile.y));
 
    restart_button.rectangle = {GetScreenWidth() / 2.f, GetScreenHeight() / 2.f, 175.f, 50.f};
    continue_button.rectangle = {restart_button.rectangle.x - 185.f, restart_button.rectangle.y, 175.f, 50.f};
@@ -364,7 +364,6 @@ void GameState::render() {
       DrawText(("SCORE: "s + std::to_string(score)).c_str(), game_width, (game_height + 1) * tile.y, 20, WHITE);
       DrawText(("HI-SCORE: "s + std::to_string(hi_score)).c_str(), game_width, (game_height + 3) * tile.y, 20, WHITE);
       DrawText(("LEVEL: "s + std::to_string(level)).c_str(), game_width, (game_height + 5) * tile.y, 20, WHITE);
-      DrawText(("COMBO: "s + std::to_string((combo_count == -1 ? 0 : combo_count))).c_str(), game_width, (game_height + 7) * tile.y, 20, WHITE);
 
       if (phase == Phase::paused) {
          DrawText("PAUSED", GetScreenWidth() / 2.f - MeasureText("PAUSED", 60) / 2.f, GetScreenHeight() / 3.f, 60, WHITE);
