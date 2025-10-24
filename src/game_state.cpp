@@ -8,6 +8,7 @@
 #include <fstream>
 #include <iostream>
 #include <random>
+#include <stack>
 #include <unordered_map>
 
 using namespace std::string_literals;
@@ -54,6 +55,7 @@ namespace {
       {KEY_UP, KEY_LEFT, KEY_RIGHT, KEY_DOWN, KEY_ENTER}
    };
 
+   constexpr Color versus_tile_color {64, 64, 64, 255};
    constexpr Vector2 next_grid {6, 6};
    constexpr int rows_for_level_up = 9;
    constexpr float keys_down_for_press = .325f;
@@ -65,22 +67,30 @@ namespace {
 
 // Constructor
 
-GameState::GameState(const Vector2& grid, int player_count)
-   : grid(grid), player_count(player_count) {
+GameState::GameState(const Vector2& grid, int player_count, bool versus)
+   : grid(grid), player_count(player_count), versus(versus) {
    tile_tx = LoadTexture("assets/tile.png");
    tile = {tile_tx.width * tile_scale, tile_tx.height * tile_scale};
 
-   for (int y = 0; y < grid.y; ++y) {
-      std::vector<Tile> row;
-      for (int x = 0; x < grid.x; ++x) {
-         if (y == 0 or y == grid.y - 1 or x == 0 or x == grid.x - 1) {
-            Tile tile {Tile::border, GRAY};
-            row.push_back(tile);
-         } else {
-            row.push_back({});
+   for (int i = 0; i < versus + 1; ++i) {
+      std::vector<std::vector<Tile>> tile_map;
+      for (int y = 0; y < grid.y; ++y) {
+         std::vector<Tile> row;
+         for (int x = 0; x < grid.x; ++x) {
+            if (y == 0 or y == grid.y - 1 or x == 0 or x == grid.x - 1) {
+               Tile tile {Tile::border, GRAY};
+               row.push_back(tile);
+            } else {
+               row.push_back({});
+            }
          }
+         tile_map.push_back(row);
       }
-      tiles.push_back(row);
+      tiles.push_back(tile_map);
+   }
+
+   if (versus) {
+      player_count *= 2;
    }
 
    for (int i = 0; i < player_count; ++i) {
@@ -107,10 +117,14 @@ GameState::GameState(const Vector2& grid, int player_count)
       player.color = get_random_color();
       player.next_tetromino = get_random_tetromino(player);
       player.next_color = get_random_color();
+      player.key = keybinds[i];
       draw_next_tetromino(player);
 
-      player.starting_pos = player.pos = {(float)int((grid.x - 2) / (player_count + 1) * (i + 1)), 1};
-      player.key = keybinds[i];
+      if (versus) {
+         player.starting_pos = player.pos = {(float)int(int(grid.x - 2) / (player_count / 2 + 1) * (i % (player_count / 2) + 1)), 1};
+      } else {
+         player.starting_pos = player.pos = {(float)int((grid.x - 2) / (player_count + 1) * (i + 1)), 1};
+      }
       players.push_back(player);
    }
 
@@ -120,7 +134,7 @@ GameState::GameState(const Vector2& grid, int player_count)
 
    game_height = next_tiles.size() * (next_grid.y + 2);
    game_width = tile.x * (grid.x + 1);
-   SetWindowSize(tile.x * (grid.x + 8), std::max(tile.y * grid.y, (game_height + 6) * tile.y));
+   SetWindowSize(tile.x * (grid.x + 8) + (versus ? tile.x * grid.x : 0), std::max(tile.y * grid.y, (game_height + 6) * tile.y));
 
    restart_button.rectangle = {GetScreenWidth() / 2.f, GetScreenHeight() / 2.f, 175.f, 50.f};
    continue_button.rectangle = {restart_button.rectangle.x - 185.f, restart_button.rectangle.y, 175.f, 50.f};
@@ -132,7 +146,7 @@ GameState::GameState(const Vector2& grid, int player_count)
 }
 
 GameState::~GameState() {
-   if (score >= hi_score) {
+   if (not versus and score >= hi_score) {
       save_hi_score(score);
    }
 }
@@ -184,53 +198,21 @@ void GameState::update_game() {
       update_key(player.key.left);
       update_key(player.key.right);
 
-      if (player.make_next_tetromino) {
-         clear_cleared_rows();
-         player.tetromino = player.next_tetromino;
-         player.color = player.next_color;
-         player.next_tetromino = get_random_tetromino(player);
-         player.next_color = get_random_color();
-         draw_next_tetromino(player);
-
-         player.pos = player.starting_pos;
-         player.make_next_tetromino = false;
-         player.down_timer = 0.f;
-
-         if (player.soft_drop or player.hard_drop) {
-            add_drop_score(player, player.hard_drop);
-         }
-         player.soft_drop = player.hard_drop = false;
-
-         if (not can_move(player.tetromino, player.pos, Path::current)) {
-            lost = true;
-            play_audio("lost"s);
-            phase = Phase::lost;
-
-            for (auto& p : players) {
-               p.preview_y = p.pos.y;
-            }
-
-            restart_button.rectangle.x = GetScreenWidth() / 2.f - 92.5f;
-            menu_button.rectangle.x = GetScreenWidth() / 2.f + 92.5f;
-            return;
-         }
-      }
-
       if (IsKeyPressed(player.key.rotate)) {
          rotate(player);
       }
 
-      if (key_down(player.key.down) and can_move(player.tetromino, player.pos, Path::down)) {
+      if (key_down(player.key.down) and can_move(player.tetromino, player.pos, Path::down, versus and player.id > player_count / 2)) {
          player.pos.y++;
          player.down_timer = 0.f;
          player.soft_drop = true;
       }
 
-      player.pos.x += (key_down(player.key.right) and can_move(player.tetromino, player.pos, Path::right));
-      player.pos.x -= (key_down(player.key.left) and can_move(player.tetromino, player.pos, Path::left));
+      player.pos.x += (key_down(player.key.right) and can_move(player.tetromino, player.pos, Path::right, versus and player.id > player_count / 2));
+      player.pos.x -= (key_down(player.key.left) and can_move(player.tetromino, player.pos, Path::left, versus and player.id > player_count / 2));
 
       if (IsKeyPressed(player.key.send)) {
-         while (can_move(player.tetromino, player.pos, Path::down)) {
+         while (can_move(player.tetromino, player.pos, Path::down, versus and player.id > player_count / 2)) {
             player.pos.y++;
          }
          player.down_timer = down_after;
@@ -242,18 +224,47 @@ void GameState::update_game() {
       if (player.down_timer >= down_after) {
          player.down_timer -= down_after;
 
-         if (can_move(player.tetromino, player.pos, Path::down)) {
+         if (can_move(player.tetromino, player.pos, Path::down, versus and player.id > player_count / 2)) {
             player.pos.y++;
          } else {
             draw_tetromino(player);
             play_audio("place"s);
-            player.make_next_tetromino = true;
+
+            clear_cleared_rows(player);
+            player.tetromino = player.next_tetromino;
+            player.color = player.next_color;
+            player.next_tetromino = get_random_tetromino(player);
+            player.next_color = get_random_color();
+            draw_next_tetromino(player);
+
+            player.pos = player.starting_pos;
+            player.down_timer = 0.f;
+
+            if (player.soft_drop or player.hard_drop) {
+               add_drop_score(player, player.hard_drop);
+            }
+            player.soft_drop = player.hard_drop = false;
+
+            if (not can_move(player.tetromino, player.pos, Path::current, versus and player.id > player_count / 2)) {
+               lost = true;
+               left_win = player.id > player_count / 2;
+               play_audio("lost"s);
+               phase = Phase::lost;
+
+               for (auto& p : players) {
+                  p.preview_y = p.pos.y;
+               }
+
+               restart_button.rectangle.x = GetScreenWidth() / 2.f - 92.5f;
+               menu_button.rectangle.x = GetScreenWidth() / 2.f + 92.5f;
+               return;
+            }
          }
       }
       int original = player.pos.y;
       player.preview_y = player.pos.y;
 
-      while (can_move(player.tetromino, player.pos, Path::down)) {
+      while (can_move(player.tetromino, player.pos, Path::down, versus and player.id > player_count / 2)) {
          player.pos.y = player.preview_y = player.pos.y + 1;
       }
       player.pos.y = original;
@@ -316,10 +327,12 @@ void GameState::render() {
    BeginDrawing();
       ClearBackground(BLACK);
 
-      for (int y = 0; y < grid.y; ++y) {
-         for (int x = 0; x < grid.x; ++x) {
-            if (tiles[y][x].type) {
-               DrawTextureEx(tile_tx, {x * tile.x, y * tile.y}, 0.f, tile_scale, tiles[y][x].color);
+      for (int i = 0; i < versus + 1; ++i) {
+         for (int y = 0; y < grid.y; ++y) {
+            for (int x = 0; x < grid.x; ++x) {
+               if (tiles[i][y][x].type) {
+                  DrawTextureEx(tile_tx, {i * tile.x * (grid.x + 8) + x * tile.x, y * tile.y}, 0.f, tile_scale, tiles[i][y][x].color);
+               }
             }
          }
       }
@@ -336,16 +349,18 @@ void GameState::render() {
       }
 
       for (const auto& player : players) {
+         int offset_x = (versus and player.id > player_count / 2) * tile.x * (grid.x + 8);
+         
          for (int y = player.pos.y; y < player.pos.y + (int)player.tetromino.tiles.size() and y < grid.y; ++y) {
             for (int x = player.pos.x; x < player.pos.x + (int)player.tetromino.tiles.size() and x < grid.x; ++x) {
                if (player.tetromino.tiles[y - player.pos.y][x - player.pos.x]) {
-                  DrawTextureEx(tile_tx, {x * tile.x, y * tile.y}, 0.f, tile_scale, player.color);
+                  DrawTextureEx(tile_tx, {x * tile.x + offset_x, y * tile.y}, 0.f, tile_scale, player.color);
                }
             }
          }
 
          if (players.size() > 1) {
-            DrawText(("P"s + std::to_string(player.id + 1)).c_str(), (player.pos.x * tile.x), (player.pos.y * tile.y), 20, WHITE);
+            DrawText(("P"s + std::to_string(player.id + 1)).c_str(), player.pos.x * tile.x + offset_x, player.pos.y * tile.y, 20, WHITE);
          }
          
          if (player.preview_y == player.pos.y) {
@@ -355,19 +370,32 @@ void GameState::render() {
          for (int y = player.preview_y; y < player.preview_y + (int)player.tetromino.tiles.size() and y < grid.y; ++y) {
             for (int x = player.pos.x; x < player.pos.x + (int)player.tetromino.tiles.size() and x < grid.x; ++x) {
                if (player.tetromino.tiles[y - player.preview_y][x - player.pos.x]) {
-                  DrawRectangleLines(x * tile.x, y * tile.y, tile.x, tile.y, player.color);
+                  DrawRectangleLines(x * tile.x + offset_x, y * tile.y, tile.x, tile.y, player.color);
                }
             }
          }
       }
 
-      DrawText(("SCORE: "s + std::to_string(score)).c_str(), game_width, (game_height + 1) * tile.y, 20, WHITE);
-      DrawText(("HI-SCORE: "s + std::to_string(hi_score)).c_str(), game_width, (game_height + 3) * tile.y, 20, WHITE);
-      DrawText(("LEVEL: "s + std::to_string(level)).c_str(), game_width, (game_height + 5) * tile.y, 20, WHITE);
+      if (versus) {
+         DrawText(("LEVEL: "s + std::to_string(level)).c_str(), game_width, (game_height + 1) * tile.y, 20, WHITE);
+      } else {
+         DrawText(("SCORE: "s + std::to_string(score)).c_str(), game_width, (game_height + 1) * tile.y, 20, WHITE);
+         DrawText(("HI-SCORE: "s + std::to_string(hi_score)).c_str(), game_width, (game_height + 3) * tile.y, 20, WHITE);
+         DrawText(("LEVEL: "s + std::to_string(level)).c_str(), game_width, (game_height + 5) * tile.y, 20, WHITE);
+      }
 
       if (phase == Phase::paused) {
          DrawText("PAUSED", GetScreenWidth() / 2.f - MeasureText("PAUSED", 60) / 2.f, GetScreenHeight() / 3.f, 60, WHITE);
          continue_button.draw();
+         restart_button.draw();
+         menu_button.draw();
+      } else if (versus and lost) {
+         DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), lost_screen_tint);
+
+         std::string won_text = (left_win ? "LEFT SIDE WON"s : "RIGHT SIDE WON"s);
+         DrawText("GAME OVER", GetScreenWidth() / 2.f - MeasureText("GAME OVER", 60) / 2.f, GetScreenHeight() / 4.f - 10.f, 60, WHITE);
+         DrawText(won_text.c_str(), GetScreenWidth() / 2.f - MeasureText(won_text.c_str(), 40) / 2.f, GetScreenHeight() / 4.f + 75.f, 40, WHITE);
+
          restart_button.draw();
          menu_button.draw();
       } else if (lost) {
@@ -390,7 +418,7 @@ void GameState::render() {
 
 void GameState::change_state(States& states) {
    if (restart) {
-      states.push_back(std::make_unique<GameState>(grid, player_count));
+      states.push_back(std::make_unique<GameState>(grid, player_count, versus));
    } else {
       states.push_back(std::make_unique<MenuState>());
    }
@@ -403,9 +431,11 @@ void GameState::change_state(States& states) {
 void GameState::draw_tetromino(const Player& player) {
    for (int y = player.pos.y; y < grid.y and y < player.pos.y + (int)player.tetromino.tiles.size(); ++y) {
       for (int x = player.pos.x; x < grid.x and x < player.pos.x + (int)player.tetromino.tiles.size(); ++x) {
-         if (player.tetromino.tiles[y - player.pos.y][x - player.pos.x] and tiles[y][x].type != Tile::border) {
-            tiles[y][x].type = Tile::on;
-            tiles[y][x].color = player.color;
+         int id = versus and player.id > player_count / 2;
+
+         if (player.tetromino.tiles[y - player.pos.y][x - player.pos.x] and tiles[id][y][x].type != Tile::border) {
+            tiles[id][y][x].type = Tile::on;
+            tiles[id][y][x].color = player.color;
          }
       }
    }
@@ -434,20 +464,20 @@ void GameState::draw_next_tetromino(const Player& player) {
 
 // Can move tetromino
 
-bool GameState::can_move(const Tetromino& tetromino, const Vector2& pos, Path type) {
+bool GameState::can_move(const Tetromino& tetromino, const Vector2& pos, Path type, int id) {
    for (int y = pos.y; y < grid.y and y < pos.y + (int)tetromino.tiles.size(); ++y) {
       for (int x = pos.x; x < grid.x and x < pos.x + (int)tetromino.tiles.size(); ++x) {
          if (not tetromino.tiles[y - pos.y][x - pos.x]) {
             continue;
          }
 
-         if (type == Path::left and (x - 1 < 0 or tiles[y][x - 1].type)) {
+         if (type == Path::left and (x - 1 < 0 or tiles[id][y][x - 1].type)) {
             return false;
-         } else if (type == Path::right and (x + 1 >= grid.x or tiles[y][x + 1].type)) {
+         } else if (type == Path::right and (x + 1 >= grid.x or tiles[id][y][x + 1].type)) {
             return false;
-         } else if (type == Path::down and (y + 1 >= grid.y or tiles[y + 1][x].type)) {
+         } else if (type == Path::down and (y + 1 >= grid.y or tiles[id][y + 1][x].type)) {
             return false;
-         } else if (type == Path::current and tiles[y][x].type) {
+         } else if (type == Path::current and tiles[id][y][x].type) {
             return false;
          }
       }
@@ -476,7 +506,7 @@ void GameState::rotate(Player& player) {
          }
       }
 
-      bool can_rotate = can_move(new_tetromino, player.pos, Path::current);
+      bool can_rotate = can_move(new_tetromino, player.pos, Path::current, versus and player.id > player_count / 2);
       if (can_rotate) {
          player.tetromino = new_tetromino;
          player.tetromino.rotation = (player.tetromino.rotation + 1) % 4;
@@ -488,18 +518,55 @@ void GameState::rotate(Player& player) {
 
 // Clear cleared rows
 
-void GameState::clear_cleared_rows() {
+void GameState::clear_cleared_rows(const Player& player) {
+   int id = (versus and player.id > player_count / 2);
    int last_difficult = difficult_count;
-   std::vector<int> cleared;
+   std::vector<int> cleared, versus_cleared;
 
    for (int y = 1; y < grid.y - 1; ++y) {
+      bool versus_blocks = false;
       for (int x = 1; x < grid.x - 1; ++x) {
-         if (not tiles[y][x].type) {
+         if (is_versus_block(tiles[id][y][x].color)) {
+            versus_blocks = true;
+         }
+         if (not tiles[id][y][x].type) {
             break;
          }
 
          if (x == grid.x - 2) {
             cleared.push_back(y);
+            if (not versus_blocks) {
+               versus_cleared.push_back(y);
+            }
+         }
+      }
+   }
+
+   if (versus and versus_cleared.size() > 1) {
+      std::stack<std::vector<bool>> cleared_lines;
+      for (const auto& cy : versus_cleared) {
+         std::vector<bool> line;
+         for (int x = 1; x < grid.x - 1; ++x) {
+            int px = x - player.pos.x, py = cy - player.pos.y, sz = player.tetromino.tiles.size();
+            line.push_back(px < 0 or px >= sz or py < 0 or py >= sz or not player.tetromino.tiles[py][px]);
+         }
+         cleared_lines.push(line);
+      }
+      play_audio("send"s);
+      
+      while (not cleared_lines.empty()) {
+         auto line = cleared_lines.top();
+         cleared_lines.pop();
+
+         for (int y = 1; y < grid.y - 1; ++y) {
+            for (int x = 1; x < grid.x - 1; ++x) {
+               if (y < grid.y - 2) {
+                  tiles[not id][y][x] = tiles[not id][y + 1][x];
+               } else {
+                  Tile new_tile {(line[x - 1] ? Tile::on : Tile::off), Color{64, 64, 64, 255}};
+                  tiles[not id][y][x] = new_tile; 
+               }
+            }
          }
       }
    }
@@ -508,9 +575,9 @@ void GameState::clear_cleared_rows() {
       for (int y = cy; y >= 1; --y) {
          for (int x = 1; x < grid.x - 1; ++x) {
             if (y == 1) {
-               tiles[y][x].type = Tile::off;
+               tiles[id][y][x].type = Tile::off;
             } else {
-               tiles[y][x] = tiles[y - 1][x];
+               tiles[id][y][x] = tiles[id][y - 1][x];
             }
          }
       }
@@ -519,10 +586,14 @@ void GameState::clear_cleared_rows() {
    level = std::min(total_clears / rows_for_level_up, 15);
    down_after = level_speeds[level];
 
+   if (versus) {
+      return;
+   }
+
    bool perfect = true;
    for (int y = 1; y < grid.y - 1; ++y) {
       for (int x = 1; x < grid.x - 1; ++x) {
-         if (tiles[y][x].type) {
+         if (tiles[id][y][x].type) {
             perfect = false;
             break;
          }
@@ -594,6 +665,12 @@ Tetromino GameState::get_random_tetromino(Player& player) {
 
 Color GameState::get_random_color() {
    return colors[rand() % colors.size()];
+}
+
+// Is versus color
+
+bool GameState::is_versus_block(const Color& color) {
+   return color.r == versus_tile_color.r and color.g == versus_tile_color.g and color.b == versus_tile_color.b;
 }
 
 // Save hi-score
