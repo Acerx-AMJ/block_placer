@@ -649,9 +649,7 @@ void GameState::add_score(int plus) {
 
 Tetromino GameState::get_random_tetromino(Player& player) {
    if (player.bag.empty()) {
-      for (const auto& tetromino : tetrominoes) {
-         player.bag.push_back(tetromino);
-      }
+      player.bag = tetrominoes;
       std::random_device rd;
       std::mt19937 device(rd());
       std::shuffle(player.bag.begin(), player.bag.end(), device);

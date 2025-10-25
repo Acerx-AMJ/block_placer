@@ -2,6 +2,8 @@
 
 // Includes
 
+#include <algorithm>
+#include <random>
 #include <raylib.h>
 #include <filesystem>
 #include <unordered_map>
@@ -10,7 +12,7 @@
 // Global variables
 
 static std::unordered_map<std::string, Sound> sounds;
-static std::vector<std::string> music_pool;
+static std::vector<std::string> music_pool, music_bag;
 static Music current_song;
 static float music_volume = 1.f, sound_volume = 1.f;
 
@@ -57,12 +59,21 @@ void set_music_volume(float volume) {
 }
 
 void update_music() {
-   if (not IsMusicValid(current_song) or not IsMusicStreamPlaying(current_song)) {
+   if (not IsMusicValid(current_song) or GetMusicTimePlayed(current_song) + 1.f >= GetMusicTimeLength(current_song)) {
       if (IsMusicValid(current_song)) {
          UnloadMusicStream(current_song);
       }
 
-      current_song = LoadMusicStream(music_pool[rand() % music_pool.size()].c_str());
+      if (music_bag.empty()) {
+         music_bag = music_pool;
+         std::random_device rd;
+         std::mt19937 device(rd());
+         std::shuffle(music_bag.begin(), music_bag.end(), device);
+      }
+      auto next_song = music_bag.back();
+      music_bag.pop_back();
+      
+      current_song = LoadMusicStream(next_song.c_str());
       SetMusicVolume(current_song, music_volume);
       PlayMusicStream(current_song);
    }
