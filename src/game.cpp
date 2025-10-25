@@ -2,7 +2,7 @@
 
 // Includes
 
-#include "audio.hpp"
+#include "util/audio.hpp"
 #include "menu_state.hpp"
 #include <raylib.h>
 #include <cstdlib>

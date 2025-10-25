@@ -1,8 +1,8 @@
-#include "button.hpp"
+#include "util/button.hpp"
 
 // Includes
 
-#include "audio.hpp"
+#include "util/audio.hpp"
 #include <algorithm>
 
 // Update button

@@ -3,7 +3,8 @@
 
 // Includes
 
-#include "button.hpp"
+#include "util/button.hpp"
+#include "util/slider.hpp"
 #include "state.hpp"
 #include <unordered_map>
 #include <vector>
@@ -64,6 +65,7 @@ class GameState : public State {
    Vector2 grid, tile;
    Color screen_tint, lost_screen_tint;
    Button continue_button, restart_button, menu_button;
+   Slider music_slider, sfx_slider;
 
    int game_width = 0, game_height = 0, score = 0, hi_score = 0, total_clears = 0, combo_count = -1, difficult_count = 0, level = 0, player_count = 0;
    float down_after = 1, fade_in_timer = 0, fade_out_timer = 0, lost_timer = 0;
@@ -107,9 +109,6 @@ public:
    Tetromino get_random_tetromino(Player& player);
    Color get_random_color();
    bool is_versus_block(const Color& color);
-
-   void save_hi_score(int hi_score);
-   int load_hi_score();
 
    void update_key(int key);
    bool key_down(int key);

@@ -2,11 +2,10 @@
 
 // Includes
 
-#include "audio.hpp"
+#include "util/audio.hpp"
 #include "menu_state.hpp"
+#include "util/file.hpp"
 #include <algorithm>
-#include <fstream>
-#include <iostream>
 #include <random>
 #include <stack>
 #include <unordered_map>
@@ -128,7 +127,7 @@ GameState::GameState(const Vector2& grid, int player_count, bool versus)
       players.push_back(player);
    }
 
-   hi_score = load_hi_score();
+   hi_score = read_from_file("save.data"s, {0.f})[0];
    screen_tint = BLACK;
    lost_screen_tint = {0, 0, 0, 0};
 
@@ -136,7 +135,17 @@ GameState::GameState(const Vector2& grid, int player_count, bool versus)
    game_width = tile.x * (grid.x + 1);
    SetWindowSize(tile.x * (grid.x + 8) + (versus ? tile.x * grid.x : 0), std::max(tile.y * grid.y, (game_height + 6) * tile.y));
 
-   restart_button.rectangle = {GetScreenWidth() / 2.f, GetScreenHeight() / 2.f, 175.f, 50.f};
+   music_slider.bg = music_slider.fg = {GetScreenWidth() / 2.f, GetScreenHeight() / 2.f - 20.f, 200.f, 25.f};
+   music_slider.knob_radius = 20;
+   music_slider.step = .05f;
+   music_slider.progress = get_music_volume();
+
+   sfx_slider.bg = sfx_slider.fg = {GetScreenWidth() / 2.f, GetScreenHeight() / 2.f + 30.f, 200.f, 25.f};
+   sfx_slider.knob_radius = 20;
+   sfx_slider.step = .05f;
+   sfx_slider.progress = get_sound_volume();
+
+   restart_button.rectangle = {GetScreenWidth() / 2.f, GetScreenHeight() / 2.f + 100.f, 175.f, 50.f};
    continue_button.rectangle = {restart_button.rectangle.x - 185.f, restart_button.rectangle.y, 175.f, 50.f};
    menu_button.rectangle = {restart_button.rectangle.x + 185.f, restart_button.rectangle.y, 175.f, 50.f};
 
@@ -147,8 +156,9 @@ GameState::GameState(const Vector2& grid, int player_count, bool versus)
 
 GameState::~GameState() {
    if (not versus and score >= hi_score) {
-      save_hi_score(score);
+      save_to_file("save.data"s, {float(score)});
    }
+   save_to_file("settings.data"s, {get_music_volume(), get_sound_volume()});
 }
 
 // Update functions
@@ -282,6 +292,17 @@ void GameState::update_pause_screen() {
    restart_button.update();
    menu_button.update();
 
+   music_slider.update();
+   sfx_slider.update();
+
+   if (music_slider.changed) {
+      set_music_volume(music_slider.progress);
+   }
+
+   if (sfx_slider.changed) {
+      set_sound_volume(sfx_slider.progress);
+   }
+
    if (IsKeyPressed(KEY_ESCAPE) or continue_button.clicked) {
       phase = Phase::playing;
    }
@@ -389,6 +410,11 @@ void GameState::render() {
          continue_button.draw();
          restart_button.draw();
          menu_button.draw();
+
+         DrawText("MUSIC: ", music_slider.bg.x - music_slider.bg.width / 2.f - 90.f, music_slider.bg.y - music_slider.bg.height / 2.f, 20, WHITE);
+         DrawText("SFX: ", sfx_slider.bg.x - sfx_slider.bg.width / 2.f - 90.f, sfx_slider.bg.y - sfx_slider.bg.height / 2.f, 20, WHITE);
+         music_slider.draw();
+         sfx_slider.draw();
       } else if (versus and lost) {
          DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), lost_screen_tint);
 
@@ -669,29 +695,6 @@ Color GameState::get_random_color() {
 
 bool GameState::is_versus_block(const Color& color) {
    return color.r == versus_tile_color.r and color.g == versus_tile_color.g and color.b == versus_tile_color.b;
-}
-
-// Save hi-score
-
-void GameState::save_hi_score(int hi_score) {
-   std::ofstream file {"save.data"};
-   file << hi_score;
-   file.close();
-}
-
-// Load hi-score
-
-int GameState::load_hi_score() {
-   std::fstream file {"save.data"};
-   std::string line;
-   file >> line;
-   file.close();
-
-   try {
-      return std::stoi(line);
-   } catch (...) {
-      return 0;
-   }
 }
 
 // Update key
