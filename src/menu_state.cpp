@@ -2,6 +2,7 @@
 
 // Include
 
+#include "audio.hpp"
 #include "game_state.hpp"
 
 // Constants
@@ -12,12 +13,14 @@ namespace {
    constexpr Vector2 single_mode_grid {12, 22};
    constexpr Vector2 co_op_mode_grid {18, 22};
    constexpr Vector2 screen {636, 700};
+   static bool first_init = true;
 }
 
 // Constructors
 
 MenuState::MenuState() {
    SetWindowSize(screen.x, screen.y);
+   
    play_button.rectangle = {GetScreenWidth() / 2.f, 250.f, 175.f, 50.f};
    co_op_button.rectangle = {play_button.rectangle.x, play_button.rectangle.y + 75.f, 175.f, 50.f};
    versus_button.rectangle = {co_op_button.rectangle.x, co_op_button.rectangle.y + 75.f, 175.f, 50.f};
@@ -45,10 +48,19 @@ void MenuState::update() {
 void MenuState::update_fading_in() {
    fade_in_timer += GetFrameTime();
    screen_tint.a = 255 - 255 * (fade_in_timer / fade_in_time);
+
+   if (first_init) {
+      set_music_volume(fade_in_timer / fade_in_time);
+   }
    
    if (fade_in_timer >= fade_in_time) {
       phase = Phase::idle;
       screen_tint.a = 0;
+
+      if (first_init) {
+         set_music_volume(1.f);
+         first_init = false;
+      }
    }
 }
 
@@ -58,9 +70,17 @@ void MenuState::update_fading_out() {
    fade_out_timer += GetFrameTime();
    screen_tint.a = 255 * (fade_out_timer / fade_out_time);
 
+   if (quit_for_good) {
+      set_music_volume(1.f - fade_out_timer / fade_out_time);
+   }
+
    if (fade_out_timer >= fade_out_time) {
       quit = true;
       screen_tint.a = 255;
+
+      if (quit_for_good) {
+         set_music_volume(0.f);
+      }
    }
 }
 

@@ -50,6 +50,7 @@ void Game::run() {
          return;
       }
 
+      update_music();
       states.front()->update();
       states.front()->render();
    }
