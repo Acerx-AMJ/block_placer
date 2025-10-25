@@ -1,5 +1,5 @@
-#ifndef AUDIO_HPP
-#define AUDIO_HPP
+#ifndef UTIL_AUDIO_HPP
+#define UTIL_AUDIO_HPP
 
 // Includes
 
@@ -15,11 +15,13 @@ void unload_audio();
 
 // Audio functions
 
+float get_sound_volume();
 void set_sound_volume(float volume);
 void play_audio(const std::string& name);
 
 // Music functions
 
+float get_music_volume();
 void set_music_volume(float volume);
 void update_music();
 

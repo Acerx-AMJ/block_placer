@@ -1,4 +1,4 @@
-#include "audio.hpp"
+#include "util/audio.hpp"
 
 // Includes
 
@@ -37,6 +37,10 @@ void unload_audio() {
 
 // Sounds functions
 
+float get_sound_volume() {
+   return sound_volume;
+}
+
 void set_sound_volume(float volume) {
    for (auto& [_, sound] : sounds) {
       SetSoundVolume(sound, volume);
@@ -50,6 +54,10 @@ void play_audio(const std::string& name) {
 }
 
 // Music functions
+
+float get_music_volume() {
+   return music_volume;
+}
 
 void set_music_volume(float volume) {
    if (IsMusicValid(current_song)) {

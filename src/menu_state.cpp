@@ -2,7 +2,8 @@
 
 // Include
 
-#include "audio.hpp"
+#include "util/audio.hpp"
+#include "util/file.hpp"
 #include "game_state.hpp"
 
 // Constants
@@ -29,6 +30,13 @@ MenuState::MenuState() {
    co_op_button.text = "CO-OP";
    versus_button.text = "VERSUS";
    quit_button.text = "QUIT";
+
+   if (first_init) {
+      auto values = read_from_file("settings.data"s, {1.f, 1.f});
+      set_music_volume(values[0]);
+      set_sound_volume(values[1]);
+      initial_volume = values[0];
+   }
 }
 
 // Update functions
@@ -50,7 +58,7 @@ void MenuState::update_fading_in() {
    screen_tint.a = 255 - 255 * (fade_in_timer / fade_in_time);
 
    if (first_init) {
-      set_music_volume(fade_in_timer / fade_in_time);
+      set_music_volume(fade_in_timer / fade_in_time * initial_volume);
    }
    
    if (fade_in_timer >= fade_in_time) {
@@ -58,7 +66,7 @@ void MenuState::update_fading_in() {
       screen_tint.a = 0;
 
       if (first_init) {
-         set_music_volume(1.f);
+         set_music_volume(initial_volume);
          first_init = false;
       }
    }

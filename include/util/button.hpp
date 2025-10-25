@@ -1,5 +1,5 @@
-#ifndef BUTTON_HPP
-#define BUTTON_HPP
+#ifndef UTIL_BUTTON_HPP
+#define UTIL_BUTTON_HPP
 
 // Includes
 

@@ -3,7 +3,7 @@
 
 // Includes
 
-#include "button.hpp"
+#include "util/button.hpp"
 #include "state.hpp"
 
 // Menu state
@@ -14,7 +14,7 @@ class MenuState : public State {
    Button play_button, co_op_button, versus_button, quit_button;
    Color screen_tint {0, 0, 0, 255};
    bool quit_for_good = false, play_co_op = false, play_versus = false;
-   float fade_in_timer = 0, fade_out_timer = 0;
+   float fade_in_timer = 0, fade_out_timer = 0, initial_volume = 0.f;
    Phase phase = Phase::fading_in;
    
 public:
