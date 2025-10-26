@@ -46,7 +46,7 @@ namespace {
    };
 
    static const std::vector<float> level_speeds {
-      1.1f, 1.f, .9f, .8f, .7f, .6f, .55f, .5f, .45f, .4f, .35f, .3f, .25f, .2f, .1f, .085f
+      1.1f, 1.f, .9f, .8f, .7f, .6f, .55f, .5f, .45f, .4f, .35f, .3f, .25f, .2f, .15f, .1f
    };
 
    static const std::vector<Keys> keybinds {

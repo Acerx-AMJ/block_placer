@@ -79,7 +79,7 @@ void MenuState::update_fading_out() {
    screen_tint.a = 255 * (fade_out_timer / fade_out_time);
 
    if (quit_for_good) {
-      set_music_volume(1.f - fade_out_timer / fade_out_time);
+      set_music_volume(get_music_volume() - fade_out_timer / fade_out_time * get_music_volume());
    }
 
    if (fade_out_timer >= fade_out_time) {
