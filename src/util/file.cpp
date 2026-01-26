@@ -3,7 +3,6 @@
 // Includes
 
 #include <fstream>
-#include <iostream>
 
 // File functions
 
@@ -28,7 +27,6 @@ std::vector<float> read_from_file(const std::string& file, const std::vector<flo
    }
 
    for (int i = values.size(); i < defaults.size(); ++i) {
-      std::cout << i << values.size() << defaults.size() << '\n';
       values.push_back(defaults[i]);
    }
    return values;

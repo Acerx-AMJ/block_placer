@@ -14,7 +14,7 @@ class MenuState : public State {
    Button play_button, co_op_button, versus_button, quit_button;
    Color screen_tint {0, 0, 0, 255};
    bool quit_for_good = false, play_co_op = false, play_versus = false;
-   float fade_in_timer = 0, fade_out_timer = 0, initial_volume = 0.f;
+   float fade_in_timer = 0, fade_out_timer = 0;
    Phase phase = Phase::fading_in;
    
 public:
@@ -34,7 +34,7 @@ public:
 
    // Change states
 
-   void change_state(States& states) override;
+   State* change_state() override;
 };
 
 #endif

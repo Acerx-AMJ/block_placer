@@ -135,12 +135,7 @@ GameState::GameState(const Vector2& grid, int player_count, bool versus)
    game_width = tile.x * (grid.x + 1);
    SetWindowSize(tile.x * (grid.x + 8) + (versus ? tile.x * grid.x : 0), std::max(tile.y * grid.y, (game_height + 6) * tile.y));
 
-   music_slider.bg = music_slider.fg = {GetScreenWidth() / 2.f, GetScreenHeight() / 2.f - 20.f, 200.f, 25.f};
-   music_slider.knob_radius = 20;
-   music_slider.step = .05f;
-   music_slider.progress = get_music_volume();
-
-   sfx_slider.bg = sfx_slider.fg = {GetScreenWidth() / 2.f, GetScreenHeight() / 2.f + 30.f, 200.f, 25.f};
+   sfx_slider.bg = sfx_slider.fg = {GetScreenWidth() / 2.f, GetScreenHeight() / 2.f, 200.f, 25.f};
    sfx_slider.knob_radius = 20;
    sfx_slider.step = .05f;
    sfx_slider.progress = get_sound_volume();
@@ -158,7 +153,7 @@ GameState::~GameState() {
    if (not versus and score >= hi_score) {
       save_to_file("save.data"s, {float(score)});
    }
-   save_to_file("settings.data"s, {get_music_volume(), get_sound_volume()});
+   save_to_file("settings.data"s, {get_sound_volume()});
 }
 
 // Update functions
@@ -292,13 +287,7 @@ void GameState::update_pause_screen() {
    restart_button.update();
    menu_button.update();
 
-   music_slider.update();
    sfx_slider.update();
-
-   if (music_slider.changed) {
-      set_music_volume(music_slider.progress);
-   }
-
    if (sfx_slider.changed) {
       set_sound_volume(sfx_slider.progress);
    }
@@ -411,9 +400,7 @@ void GameState::render() {
          restart_button.draw();
          menu_button.draw();
 
-         DrawText("MUSIC: ", music_slider.bg.x - music_slider.bg.width / 2.f - 90.f, music_slider.bg.y - music_slider.bg.height / 2.f, 20, WHITE);
          DrawText("SFX: ", sfx_slider.bg.x - sfx_slider.bg.width / 2.f - 90.f, sfx_slider.bg.y - sfx_slider.bg.height / 2.f, 20, WHITE);
-         music_slider.draw();
          sfx_slider.draw();
       } else if (versus and lost) {
          DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), lost_screen_tint);
@@ -442,11 +429,11 @@ void GameState::render() {
 
 // Change states
 
-void GameState::change_state(States& states) {
+State* GameState::change_state() {
    if (restart) {
-      states.push_back(std::make_unique<GameState>(grid, player_count, versus));
+      return new GameState(grid, player_count, versus);
    } else {
-      states.push_back(std::make_unique<MenuState>());
+      return new MenuState();
    }
 }
 

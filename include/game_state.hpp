@@ -65,7 +65,7 @@ class GameState : public State {
    Vector2 grid, tile;
    Color screen_tint, lost_screen_tint;
    Button continue_button, restart_button, menu_button;
-   Slider music_slider, sfx_slider;
+   Slider sfx_slider;
 
    int game_width = 0, game_height = 0, score = 0, hi_score = 0, total_clears = 0, combo_count = -1, difficult_count = 0, level = 0, player_count = 0;
    float down_after = 1, fade_in_timer = 0, fade_out_timer = 0, lost_timer = 0;
@@ -93,7 +93,7 @@ public:
 
    // Change states
 
-   void change_state(States& states) override;
+   State* change_state() override;
 
    // Utility
 

@@ -33,9 +33,7 @@ MenuState::MenuState() {
 
    if (first_init) {
       auto values = read_from_file("settings.data"s, {1.f, 1.f});
-      set_music_volume(values[0]);
-      set_sound_volume(values[1]);
-      initial_volume = values[0];
+      set_sound_volume(values[0]);
    }
 }
 
@@ -57,18 +55,9 @@ void MenuState::update_fading_in() {
    fade_in_timer += GetFrameTime();
    screen_tint.a = 255 - 255 * (fade_in_timer / fade_in_time);
 
-   if (first_init) {
-      set_music_volume(fade_in_timer / fade_in_time * initial_volume);
-   }
-   
    if (fade_in_timer >= fade_in_time) {
       phase = Phase::idle;
       screen_tint.a = 0;
-
-      if (first_init) {
-         set_music_volume(initial_volume);
-         first_init = false;
-      }
    }
 }
 
@@ -78,17 +67,9 @@ void MenuState::update_fading_out() {
    fade_out_timer += GetFrameTime();
    screen_tint.a = 255 * (fade_out_timer / fade_out_time);
 
-   if (quit_for_good) {
-      set_music_volume(get_music_volume() - fade_out_timer / fade_out_time * get_music_volume());
-   }
-
    if (fade_out_timer >= fade_out_time) {
       quit = true;
       screen_tint.a = 255;
-
-      if (quit_for_good) {
-         set_music_volume(0.f);
-      }
    }
 }
 
@@ -138,16 +119,16 @@ void MenuState::render() {
 
 // Change states
 
-void MenuState::change_state(States& states) {
+State* MenuState::change_state() {
    if (quit_for_good) {
-      return;
+      return nullptr;
    }
    
    if (play_co_op) {
-      states.push_back(std::make_unique<GameState>(co_op_mode_grid, 2, false));
+      return new GameState(co_op_mode_grid, 2, false);
    } else if (play_versus) {
-      states.push_back(std::make_unique<GameState>(single_mode_grid, 1, true));
+      return new GameState(single_mode_grid, 1, true);
    } else {
-      states.push_back(std::make_unique<GameState>(single_mode_grid, 1, false));
+      return new GameState(single_mode_grid, 1, false);
    }
 }

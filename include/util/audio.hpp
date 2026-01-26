@@ -19,10 +19,4 @@ float get_sound_volume();
 void set_sound_volume(float volume);
 void play_audio(const std::string& name);
 
-// Music functions
-
-float get_music_volume();
-void set_music_volume(float volume);
-void update_music();
-
 #endif
