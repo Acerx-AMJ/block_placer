@@ -2,8 +2,6 @@
 
 // Includes
 
-#include <algorithm>
-#include <random>
 #include <raylib.h>
 #include <filesystem>
 #include <unordered_map>
@@ -15,9 +13,10 @@ static float sound_volume = 1.f;
 
 // Load/unload functions
 
-void load_audio() {   
+void load_audio() {
+   std::filesystem::create_directories("assets/audio/");
    for (const auto& file : std::filesystem::directory_iterator("assets/audio/")) {
-      Sound sound = LoadSound(file.path().c_str());
+      Sound sound = LoadSound(file.path().string().c_str());
       sounds[file.path().stem().string()] = sound;
    }
 }
