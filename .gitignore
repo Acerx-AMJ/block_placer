@@ -1,0 +1,7 @@
+/.cache
+/.vs
+/.vscode
+/.clangd
+/build
+/block
+/*.data

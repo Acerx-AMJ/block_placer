@@ -347,7 +347,7 @@ void GameState::render() {
          }
       }
 
-      for (int i = 0; i < next_tiles.size(); ++i) {
+      for (size_t i = 0; i < next_tiles.size(); ++i) {
          DrawText(("NEXT P"s + std::to_string(i + 1) + ": "s).c_str(), game_width, ((next_grid.y + 2) * i + 1) * tile.y, 20, WHITE);
          for (int y = 0; y < next_grid.y; ++y) {
             for (int x = 0; x < next_grid.x; ++x) {
@@ -465,8 +465,8 @@ void GameState::draw_next_tetromino(const Player& player) {
    int ox = 1 + (player.next_tetromino.tiles.size() != 4);
    int oy = 1 + (player.next_tetromino.tiles.size() == 2);
 
-   for (int y = oy; y < player.next_tetromino.tiles.size() + oy; ++y) {
-      for (int x = ox; x < player.next_tetromino.tiles.size() + ox; ++x) {
+   for (size_t y = oy; y < player.next_tetromino.tiles.size() + oy; ++y) {
+      for (size_t x = ox; x < player.next_tetromino.tiles.size() + ox; ++x) {
          if (player.next_tetromino.tiles[y - oy][x - ox]) {
             next_tiles[player.id][y][x].type = Tile::on;
             next_tiles[player.id][y][x].color = player.next_color;
@@ -513,8 +513,8 @@ void GameState::rotate(Player& player) {
       player.pos = {original_pos.x + offset.x, original_pos.y + offset.y};
       Tetromino new_tetromino = player.tetromino;
 
-      for (int y = 0; y < player.tetromino.tiles.size(); ++y) {
-         for (int x = 0; x < player.tetromino.tiles.size(); ++x) {
+      for (size_t y = 0; y < player.tetromino.tiles.size(); ++y) {
+         for (size_t x = 0; x < player.tetromino.tiles.size(); ++x) {
             new_tetromino.tiles[y][x] = player.tetromino.tiles[player.tetromino.tiles.size() - x - 1][y];
          }
       }
@@ -644,8 +644,8 @@ void GameState::clear_cleared_rows(const Player& player) {
 // Add drop score
 
 void GameState::add_drop_score(const Player& player, bool hard) {
-   for (int y = 0; y < player.tetromino.tiles.size(); ++y) {
-      for (int x = 0; x < player.tetromino.tiles.size(); ++x) {
+   for (size_t y = 0; y < player.tetromino.tiles.size(); ++y) {
+      for (size_t x = 0; x < player.tetromino.tiles.size(); ++x) {
          score += player.tetromino.tiles[y][x] * (hard + 1);
       }
    }

@@ -1,37 +1,35 @@
 # Block Placer
-A game heavily inspired by Tetris featuring single player mode, co-op mode and a versus mode.  Play with friends on the same machine or challenge yourself and go alone. There's also something for competitive players! Up for the challenge? Try the game out for free on [Itch.io](https://acerxamj.itch.io/block-placer)!
+A game heavily inspired by Tetris featuring single player mode, co-op mode and a versus mode. Play with friends on the same machine or challenge yourself and go alone. Try the game out for free on [Itch.io](https://acerxamj.itch.io/block-placer).
 
-### Table of Contents
-- [Features](#features)
-- [Controls](#controls)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Contributing](#contributing)
-- [Credits](#credits)
-
-### Features
+## Features
 - Single player mode
 - Co-op mode
 - Versus mode
 - Rotation, clearing and other mechanics found in Tetris games
 
-### Controls
+## Controls
 - A/D/left/right - Move tetromino left/right
 - W/up - Rotate tetromino
 - S/down - Drop tetromino by one tile
 - space/enter - Send tetromino down
 - esc - Pause the game
 
-### Installation
-This project depends on Raylib 5.5 and uses the C++17 standard. To compile, you'll have to include Raylib as a library, include the folder 'include' and add all .cpp files in 'main/' and 'main/util' as source files.
+## Building
+This project depends on [Raylib](https://www.raylib.com/) and C++17. You can compile it using CMake:
+```bash
+cmake -B build
+cmake --build build
+```
 
-### Usage
-Simply run the executable after building. Assets folder must be in the same directory in which the executable is ran.
+The executable will be located in `build/block`. Or using your favorite compiler:
+```bash
+g++ -std=c++17 -Iinclude src/*.cpp -o block -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
+```
 
-### Contributing
-I will not be actively working on this project from now on, so PRs are not welcome. If you file an issue, I might look into it in the future and fix it, but I cannot be 100% sure.
+The assets folder must be in the same folder in which the executable is ran. The game will create two extra .data files in the same folder as it is ran.
 
-### Credits
-All assets and code was made by Acerx-AMJ.
+## Installing
+You can install the game for free on [Itch.io](https://acerxamj.itch.io/block-placer).
 
-This project is licensed under the [MIT License](LICENSE). Feel free to copy, edit and distribute the code.
+## Credits
+This project, including all assets, was made by Daniel Vishnevsky and is licensed under MIT License.

@@ -26,7 +26,7 @@ std::vector<float> read_from_file(const std::string& file, const std::vector<flo
       }
    }
 
-   for (int i = values.size(); i < defaults.size(); ++i) {
+   for (size_t i = values.size(); i < defaults.size(); ++i) {
       values.push_back(defaults[i]);
    }
    return values;
