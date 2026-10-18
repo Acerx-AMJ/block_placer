@@ -1,5 +1,6 @@
 # Block Placer
 A game heavily inspired by Tetris featuring single player mode, co-op mode and a versus mode. Play with friends on the same machine or challenge yourself and go alone. Try the game out for free on [Itch.io](https://acerxamj.itch.io/block-placer).
+![Screenshot of the game](assets/screenshot.png)
 
 ## Features
 - Single player mode
@@ -12,7 +13,7 @@ A game heavily inspired by Tetris featuring single player mode, co-op mode and a
 - W/up - Rotate tetromino
 - S/down - Drop tetromino by one tile
 - space/enter - Send tetromino down
-- esc - Pause the game
+- escape - Pause the game
 
 ## Building
 This project depends on [Raylib](https://www.raylib.com/) and C++17. You can compile it using CMake:
