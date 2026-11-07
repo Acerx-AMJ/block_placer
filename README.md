@@ -1,4 +1,5 @@
-# Block Placer
+![Logo](assets/logo.png)
+
 A game heavily inspired by Tetris featuring single player mode, co-op mode and a versus mode. Play with friends on the same machine or challenge yourself and go alone. Try the game out for free on [Itch.io](https://acerxamj.itch.io/block-placer).
 ![Screenshot of the game](assets/screenshot.png)
 
