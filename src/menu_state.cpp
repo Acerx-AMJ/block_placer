@@ -5,6 +5,7 @@
 #include "util/audio.hpp"
 #include "util/file.hpp"
 #include "game_state.hpp"
+#include <raymath.h>
 
 // Constants
 
@@ -22,6 +23,7 @@ namespace {
 MenuState::MenuState() {
    SetWindowSize(screen.x, screen.y);
    
+   title = LoadTexture("assets/logo.png");
    play_button.rectangle = {GetScreenWidth() / 2.f, 250.f, 175.f, 50.f};
    co_op_button.rectangle = {play_button.rectangle.x, play_button.rectangle.y + 75.f, 175.f, 50.f};
    versus_button.rectangle = {co_op_button.rectangle.x, co_op_button.rectangle.y + 75.f, 175.f, 50.f};
@@ -35,6 +37,10 @@ MenuState::MenuState() {
       auto values = read_from_file("settings.data"s, {1.f, 1.f});
       set_sound_volume(values[0]);
    }
+}
+
+MenuState::~MenuState() {
+   UnloadTexture(title);
 }
 
 // Update functions
@@ -112,7 +118,10 @@ void MenuState::render() {
       co_op_button.draw();
       versus_button.draw();
       quit_button.draw();
-      DrawText("BLOCK PLACER", GetScreenWidth() / 2.f - MeasureText("BLOCK PLACER", 60) / 2.f, 150.f, 60, WHITE);
+
+      const float titleWidth = screen.x - 100.0f;
+      const Vector2 titleSize = {titleWidth, titleWidth * ((float)title.height / title.width)};
+      DrawTexturePro(title, {0, 0, (float)title.width, (float)title.height}, {screen.x / 2.0f, 150.0f, titleSize.x, titleSize.y}, titleSize * 0.5f, 0.0f, WHITE);
       DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), screen_tint);
    EndDrawing();
 }

@@ -11,6 +11,7 @@
 class MenuState : public State {
    enum class Phase { fading_in, idle, fading_out };
    
+   Texture title;
    Button play_button, co_op_button, versus_button, quit_button;
    Color screen_tint {0, 0, 0, 255};
    bool quit_for_good = false, play_co_op = false, play_versus = false;
@@ -19,7 +20,7 @@ class MenuState : public State {
    
 public:
    MenuState();
-   ~MenuState() = default;
+   ~MenuState();
 
    // Update
 

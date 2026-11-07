@@ -154,6 +154,7 @@ GameState::~GameState() {
       save_to_file("save.data"s, {float(score)});
    }
    save_to_file("settings.data"s, {get_sound_volume()});
+   UnloadTexture(tile_tx);
 }
 
 // Update functions
